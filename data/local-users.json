@@ -1,0 +1,60 @@
+[
+  {
+    "fullName": "yasser as",
+    "email": "ahmadsultaniiii242@gmail.com",
+    "password": "",
+    "passwordHash": "45373796bb834ac7b9914a3395675e23f4dcd91de2053eff77bfbcc60be1e75d78ff0d308d4d57f9e0df4b7cb34670a0cec8f8b40673d7772fffd8d714a3178b",
+    "salt": "1a84ad5945c4a84fc7c122cfe61d51e6",
+    "createdAt": "2026-05-16T13:09:12.496Z",
+    "trialEndsAt": "2026-05-17T13:09:12.496Z",
+    "membershipStatus": "trial"
+  },
+  {
+    "fullName": "sira sara",
+    "email": "siram08742@gmail.com",
+    "password": "",
+    "passwordHash": "6ab69eec37b4e545d9c1c2bbce6fd23f7adc797855d25c77c306b8dc760e331a7fb56c6c1d3e167808b2ee6fbc3bfd2e98dee8c4e15f7847d95007c0bd207bd8",
+    "salt": "edb1295c85b80ca91777487ac249e474",
+    "createdAt": "2026-05-16T13:18:52.824Z",
+    "membershipStatus": "premium"
+  },
+  {
+    "fullName": "hida melto",
+    "email": "hida0242ss@gmail.com",
+    "password": "",
+    "passwordHash": "28db726e304e3c9a4d0cea03dfbc0a36ceae7d981ab7425c1893fb508a083de7f41779b9e1bd1c3c0e56bf76df4045b511a0a06c6ed9f726de3a02ed97916c3c",
+    "salt": "01f5ccc03b2a0fc229d8ab29fe72b201",
+    "createdAt": "2026-05-17T12:18:59.414Z",
+    "trialEndsAt": "2026-05-18T12:18:59.414Z",
+    "membershipStatus": "trial"
+  },
+  {
+    "fullName": "johan doe",
+    "email": "pengaflodemedoptionerstrading@gmail.com",
+    "password": "",
+    "passwordHash": "f85aa2793d3aaaf5ac303f62ebfe828f8c3007ed8c7a207647cd68101530982551d16f988366c3cc87622bd3e55570c58baba33ac533382aedf29733714897a4",
+    "salt": "4faec45410baee114439896071a26517",
+    "createdAt": "2026-05-17T14:22:35.277Z",
+    "membershipStatus": "premium"
+  },
+  {
+    "fullName": "Sultani Ahmad",
+    "email": "ahmadalabasha@gmail.com",
+    "password": "",
+    "passwordHash": "c6affe542f9d48911d9f97d2043a38b3e9132ab959228f5ea8f41d54a9be9da8e99615eb168df7c866b6646e95ed811c9155b0478b49a0df0b427e17267c6dc1",
+    "salt": "702e9ce699ed3e683603ae00649106d4",
+    "createdAt": "2026-05-17T14:35:31.567Z",
+    "trialEndsAt": "2026-05-18T14:35:31.567Z",
+    "membershipStatus": "trial"
+  },
+  {
+    "fullName": "owees dellato",
+    "email": "oways2004@gmail.com",
+    "password": "Oweis@2004",
+    "passwordHash": "12588d529431c2336071a47ee4dcbbef0f74ca3fbbd80e837849736b15c61dcbad5036c1ad5b74340dc8ed22459e910a2226eb1021aeb6a1666b966d1f0a01d4",
+    "salt": "5812c156c8d16665d991b6abf5e191f0",
+    "createdAt": "2026-05-22T06:41:23.885Z",
+    "trialEndsAt": "2026-05-23T06:41:23.885Z",
+    "membershipStatus": "trial"
+  }
+]
