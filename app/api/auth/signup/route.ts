@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { appendUser, getUserByEmail, isSheetsConfigured } from "@/lib/google-sheets";
+import { getUserByEmail as getUserByEmailDb, createUser, initDb } from "@/lib/db";
 import {
   createSessionCookie,
   createSessionToken,
@@ -54,7 +54,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const existing = await getUserByEmail(email);
+    await initDb();
+    const existing = await getUserByEmailDb(email);
     if (existing) {
       return NextResponse.json(
         { error: "A user with that email already exists. Please sign in." },
@@ -63,7 +64,18 @@ export async function POST(req: Request) {
     }
 
     const { salt, hash: passwordHash } = await hashPassword(password);
-    const user = await appendUser({ fullName, email, password, passwordHash, salt, subscriptionTier });
+    const createdAt = new Date().toISOString();
+    const trialEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const user = await createUser({
+      fullName,
+      email,
+      passwordHash,
+      salt,
+      createdAt,
+      trialEndsAt,
+      membershipStatus: "trial",
+      subscriptionTier,
+    });
     const isSuperAdminUser = isSuperAdmin(user.email);
     let redirectUrl = "/";
     if (hasUltimateAccess(user.subscriptionTier, isSuperAdminUser)) {

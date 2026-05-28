@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserByEmail, isSheetsConfigured } from "@/lib/google-sheets";
+import { getUserByEmail as getUserByEmailDb, initDb } from "@/lib/db";
 import {
   createSessionCookie,
   createSessionToken,
@@ -43,7 +43,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const user = await getUserByEmail(email);
+    await initDb();
+    const user = await getUserByEmailDb(email);
     if (!user) {
       return NextResponse.json(
         { error: "No account found for that email." },

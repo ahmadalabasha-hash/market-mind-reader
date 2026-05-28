@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import path from "path";
 import {
   createSessionCookie,
   createSessionToken,
   verifySessionToken,
 } from "@/lib/auth";
 import { fetchSignalsFromSheet, type SignalRow } from "@/lib/signals";
-import { getAllUsers } from "@/lib/google-sheets";
+import { getAllUsers, initDb } from "@/lib/db";
 
 const ONLYME_PASSWORD = "Farogah2004@123";
 const ONLYME_COOKIE_NAME = "onlyme_auth";
@@ -315,6 +313,7 @@ export async function GET(req: Request) {
     });
   }
 
+  await initDb();
   let users: any[] = [];
   try {
     users = await getAllUsers();
