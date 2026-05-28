@@ -81,7 +81,7 @@ export async function POST(req: Request) {
       createdAt: user.createdAt,
       trialEndsAt: user.trialEndsAt,
       membershipStatus: user.membershipStatus,
-      subscriptionTier: user.subscriptionTier,
+      subscriptionTier: user.subscriptionTier as SubscriptionTier,
     });
 
     const isSuperAdminUser = isSuperAdmin(user.email);
