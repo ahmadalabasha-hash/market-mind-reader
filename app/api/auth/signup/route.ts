@@ -101,7 +101,7 @@ export async function POST(req: Request) {
         user: {
           fullName: user.fullName,
           email: user.email,
-          subscriptionTier: user.subscriptionTier,
+          subscriptionTier: user.subscriptionTier as SubscriptionTier,
           isSuperAdmin: isSuperAdminUser,
         },
         redirectUrl,

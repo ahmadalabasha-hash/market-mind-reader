@@ -14,6 +14,7 @@ import {
   hasUltimateAccess,
   hasProAccess,
   hasBasicAccess,
+  SubscriptionTier,
 } from "@/lib/auth-types";
 
 export async function POST(req: Request) {
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
         user: {
           fullName: user.fullName,
           email: user.email,
-          subscriptionTier: user.subscriptionTier,
+          subscriptionTier: user.subscriptionTier as SubscriptionTier,
           isSuperAdmin: isSuperAdminUser,
         },
         redirectUrl,
