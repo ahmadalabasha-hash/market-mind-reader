@@ -1,11 +1,13 @@
 import { neon } from '@neondatabase/serverless';
 import { SubscriptionTier } from './auth-types';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set');
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.warn('DATABASE_URL environment variable is not set. Database operations will fail.');
 }
 
-export const sql = neon(process.env.DATABASE_URL);
+export const sql = databaseUrl ? neon(databaseUrl) : null;
 
 export interface User {
   id?: number;
@@ -20,6 +22,7 @@ export interface User {
 }
 
 export async function initDb() {
+  if (!sql) return;
   await sql`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -36,6 +39,7 @@ export async function initDb() {
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
+  if (!sql) return null;
   const users = await sql`
     SELECT * FROM users WHERE email = ${email.toLowerCase()}
   `;
@@ -43,6 +47,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function createUser(user: User): Promise<User> {
+  if (!sql) throw new Error('Database not configured');
   const result = await sql`
     INSERT INTO users (fullName, email, passwordHash, salt, createdAt, trialEndsAt, membershipStatus, subscriptionTier)
     VALUES (
@@ -61,6 +66,7 @@ export async function createUser(user: User): Promise<User> {
 }
 
 export async function getAllUsers(): Promise<User[]> {
+  if (!sql) return [];
   const users = await sql`SELECT * FROM users ORDER BY createdAt DESC`;
   return users as User[];
 }
