@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { SubscriptionTier } from './auth-types';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is not set');
@@ -15,7 +16,7 @@ export interface User {
   createdAt: string;
   trialEndsAt?: string;
   membershipStatus: string;
-  subscriptionTier: string;
+  subscriptionTier: SubscriptionTier;
 }
 
 export async function initDb() {
