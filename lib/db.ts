@@ -1,13 +1,23 @@
 import { neon } from '@neondatabase/serverless';
 import { SubscriptionTier } from './auth-types';
 
-const databaseUrl = process.env.DATABASE_URL;
+let sqlInstance: ReturnType<typeof neon> | null = null;
 
-if (!databaseUrl) {
-  console.warn('DATABASE_URL environment variable is not set. Database operations will fail.');
+function getSql() {
+  if (!sqlInstance) {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      console.warn('DATABASE_URL environment variable is not set. Database operations will fail.');
+      return null;
+    }
+    sqlInstance = neon(databaseUrl);
+  }
+  return sqlInstance;
 }
 
-export const sql = databaseUrl ? neon(databaseUrl) : null;
+export function sql() {
+  return getSql();
+}
 
 export interface User {
   id?: number;
@@ -22,8 +32,9 @@ export interface User {
 }
 
 export async function initDb() {
-  if (!sql) return;
-  await sql`
+  const client = sql();
+  if (!client) return;
+  await client`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       fullName TEXT NOT NULL,
@@ -39,16 +50,18 @@ export async function initDb() {
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  if (!sql) return null;
-  const users = await sql`
+  const client = sql();
+  if (!client) return null;
+  const users = await client`
     SELECT * FROM users WHERE email = ${email.toLowerCase()}
-  `;
+  ` as any[];
   return users.length > 0 ? (users[0] as User) : null;
 }
 
 export async function createUser(user: User): Promise<User> {
-  if (!sql) throw new Error('Database not configured');
-  const result = await sql`
+  const client = sql();
+  if (!client) throw new Error('Database not configured');
+  const result = await client`
     INSERT INTO users (fullName, email, passwordHash, salt, createdAt, trialEndsAt, membershipStatus, subscriptionTier)
     VALUES (
       ${user.fullName},
@@ -61,12 +74,13 @@ export async function createUser(user: User): Promise<User> {
       ${user.subscriptionTier}
     )
     RETURNING *
-  `;
+  ` as any[];
   return result[0] as User;
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  if (!sql) return [];
-  const users = await sql`SELECT * FROM users ORDER BY createdAt DESC`;
+  const client = sql();
+  if (!client) return [];
+  const users = await client`SELECT * FROM users ORDER BY createdAt DESC` as any[];
   return users as User[];
 }
