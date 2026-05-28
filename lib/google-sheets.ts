@@ -338,30 +338,46 @@ async function appendUserViaScript(row: UserSheetRow) {
 async function fetchUsersViaScript(): Promise<UserSheetRow[]> {
   const scriptUrl = getSheetsScriptUrl();
   if (!scriptUrl) {
+    console.error("[fetchUsersViaScript] No script URL configured");
     return [];
   }
 
   const url = new URL(scriptUrl);
   url.searchParams.set("action", "getUsers");
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      "Accept": "application/json",
-    },
-  });
+  console.log("[fetchUsersViaScript] Fetching from:", url.toString());
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+    });
+  } catch (err) {
+    console.error("[fetchUsersViaScript] Fetch error:", err);
+    return [];
+  }
+
+  console.log("[fetchUsersViaScript] Response status:", response.status);
 
   if (!response.ok) {
     const text = await response.text();
+    console.error("[fetchUsersViaScript] Non-OK response:", response.status, text);
     throw new Error(`Failed to fetch users via script: ${response.status} ${text}`);
   }
 
   const data = await response.json();
+  console.log("[fetchUsersViaScript] Response data:", JSON.stringify(data).slice(0, 500));
+
   const users = Array.isArray(data)
     ? data
     : Array.isArray(data?.users)
     ? data.users
     : [];
+
+  console.log("[fetchUsersViaScript] Parsed users count:", users.length);
 
   return users
     .map((row: unknown) => ({
@@ -382,7 +398,10 @@ export async function getAllUsers(): Promise<UserSheetRow[]> {
   // Always prioritize local storage as the source of truth for password hashes
   const localUsers = await readLocalUsers();
 
+  console.log("[getAllUsers] Local users count:", localUsers.length);
+
   if (!isSheetsConfigured()) {
+    console.log("[getAllUsers] Sheets not configured, returning local users only");
     return localUsers;
   }
 
@@ -390,7 +409,9 @@ export async function getAllUsers(): Promise<UserSheetRow[]> {
   try {
     if (!getServiceAccountCredentialsSync() && isScriptUrlConfigured()) {
       try {
+        console.log("[getAllUsers] Attempting to fetch users via script...");
         const scriptUsers = await fetchUsersViaScript();
+        console.log("[getAllUsers] Fetched script users count:", scriptUsers.length);
         // Merge script users with local users, prioritizing local data
         const localUserMap = new Map(localUsers.map(u => [u.email, u]));
         for (const scriptUser of scriptUsers) {
@@ -398,13 +419,16 @@ export async function getAllUsers(): Promise<UserSheetRow[]> {
             localUserMap.set(scriptUser.email, scriptUser);
           }
         }
-        return Array.from(localUserMap.values());
+        const merged = Array.from(localUserMap.values());
+        console.log("[getAllUsers] Merged users count:", merged.length);
+        return merged;
       } catch (err) {
-        console.error("Failed to fetch users via script, using local storage:", err);
+        console.error("[getAllUsers] Failed to fetch users via script, using local storage:", err);
         return localUsers;
       }
     }
 
+    console.log("[getAllUsers] Using direct Sheets API...");
     const client = await getSheetsClient();
     const response = await client.spreadsheets.values.get({
       spreadsheetId: getSpreadsheetId()!,
@@ -413,8 +437,11 @@ export async function getAllUsers(): Promise<UserSheetRow[]> {
 
     const values = response.data.values || [];
     if (values.length === 0) {
+      console.log("[getAllUsers] No values from Sheets API");
       return localUsers;
     }
+
+    console.log("[getAllUsers] Sheets API returned rows:", values.length);
 
     // Create column index map from header row
     const headers = values[0].map((h: unknown) => String(h).trim().toLowerCase());
