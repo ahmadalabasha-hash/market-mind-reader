@@ -12,6 +12,10 @@ import {
   validatePassword,
   isBlockedEmail,
   SubscriptionTier,
+  isSuperAdmin,
+  hasUltimateAccess,
+  hasProAccess,
+  hasBasicAccess,
 } from "@/lib/auth-types";
 
 export async function POST(req: Request) {
@@ -60,6 +64,16 @@ export async function POST(req: Request) {
 
     const { salt, hash: passwordHash } = await hashPassword(password);
     const user = await appendUser({ fullName, email, password, passwordHash, salt, subscriptionTier });
+    const isSuperAdminUser = isSuperAdmin(user.email);
+    let redirectUrl = "/";
+    if (hasUltimateAccess(user.subscriptionTier, isSuperAdminUser)) {
+      redirectUrl = "/ultimate";
+    } else if (hasProAccess(user.subscriptionTier, isSuperAdminUser)) {
+      redirectUrl = "/pro";
+    } else if (hasBasicAccess(user.subscriptionTier, isSuperAdminUser)) {
+      redirectUrl = "/basic";
+    }
+
     const token = createSessionToken({
       email: user.email,
       fullName: user.fullName,
@@ -75,7 +89,10 @@ export async function POST(req: Request) {
         user: {
           fullName: user.fullName,
           email: user.email,
+          subscriptionTier: user.subscriptionTier,
+          isSuperAdmin: isSuperAdminUser,
         },
+        redirectUrl,
       },
       {
         headers: {

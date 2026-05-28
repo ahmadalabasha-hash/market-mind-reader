@@ -21,7 +21,7 @@ export default function Home() {
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/auth"
+                href="/auth?tier=trial"
                 className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-8 py-4 text-base font-semibold text-zinc-950 transition-all hover:from-amber-500 hover:to-orange-600 shadow-lg shadow-amber-500/20"
               >
                 Start Free Trial
@@ -122,7 +122,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/auth"
+              href="/auth?tier=trial"
               className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-8 py-4 text-base font-semibold text-zinc-950 transition-all hover:from-amber-500 hover:to-orange-600 shadow-lg shadow-amber-500/20"
             >
               Get Started Free

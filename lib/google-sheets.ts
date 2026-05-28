@@ -126,8 +126,49 @@ export type UserSheetRow = {
   subscriptionTier?: "basic" | "pro" | "ultimate" | "trial" | "none";
 };
 
+type SubscriptionTierValue = NonNullable<UserSheetRow["subscriptionTier"]>;
+
 function normalizeHeaderValue(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+  if (typeof value === "string") return value.trim();
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "number" || typeof value === "boolean") return String(value).trim();
+  return "";
+}
+
+function getRowValue(row: unknown, possibleNames: string[]) {
+  if (!row || typeof row !== "object") return "";
+  const normalizedEntries = Object.entries(row).map(([key, value]) => [
+    key.toLowerCase().replace(/[^a-z0-9]/g, ""),
+    value,
+  ] as const);
+
+  for (const name of possibleNames) {
+    const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const match = normalizedEntries.find(([key]) => key === normalizedName);
+    if (match) return normalizeHeaderValue(match[1]);
+  }
+
+  return "";
+}
+
+function readStringField(row: unknown, key: string) {
+  if (!row || typeof row !== "object") return "";
+  const value = (row as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+}
+
+function normalizeSubscriptionTier(value: string): SubscriptionTierValue {
+  const normalized = value.toLowerCase().trim();
+  if (
+    normalized === "basic" ||
+    normalized === "pro" ||
+    normalized === "ultimate" ||
+    normalized === "trial" ||
+    normalized === "none"
+  ) {
+    return normalized;
+  }
+  return "trial";
 }
 
 async function ensureLocalUsersFile() {
@@ -148,15 +189,15 @@ async function readLocalUsers(): Promise<UserSheetRow[]> {
 
     return parsed
       .map((row: unknown) => ({
-        fullName: typeof (row as any).fullName === "string" ? (row as any).fullName : "",
-        email: typeof (row as any).email === "string" ? (row as any).email.toLowerCase().trim() : "",
-        password: typeof (row as any).password === "string" ? (row as any).password : "",
-        passwordHash: typeof (row as any).passwordHash === "string" ? (row as any).passwordHash : "",
-        salt: typeof (row as any).salt === "string" ? (row as any).salt : "",
-        createdAt: typeof (row as any).createdAt === "string" ? (row as any).createdAt : "",
-        trialEndsAt: typeof (row as any).trialEndsAt === "string" ? (row as any).trialEndsAt : undefined,
-        membershipStatus: typeof (row as any).membershipStatus === "string" ? (row as any).membershipStatus : "trial",
-        subscriptionTier: typeof (row as any).subscriptionTier === "string" ? (row as any).subscriptionTier : "trial",
+        fullName: readStringField(row, "fullName"),
+        email: readStringField(row, "email").toLowerCase().trim(),
+        password: readStringField(row, "password"),
+        passwordHash: readStringField(row, "passwordHash"),
+        salt: readStringField(row, "salt"),
+        createdAt: readStringField(row, "createdAt"),
+        trialEndsAt: readStringField(row, "trialEndsAt") || undefined,
+        membershipStatus: readStringField(row, "membershipStatus") || "trial",
+        subscriptionTier: normalizeSubscriptionTier(readStringField(row, "subscriptionTier")),
       }))
       .filter((row) => row.email && row.passwordHash && row.salt);
   } catch (err) {
@@ -323,16 +364,16 @@ async function fetchUsersViaScript(): Promise<UserSheetRow[]> {
     : [];
 
   return users
-    .map((row: any) => ({
-      fullName: normalizeHeaderValue(row.fullName),
-      email: normalizeHeaderValue(row.email).toLowerCase(),
-      password: normalizeHeaderValue(row.password),
-      passwordHash: normalizeHeaderValue(row.passwordHash),
-      salt: normalizeHeaderValue(row.salt),
-      createdAt: normalizeHeaderValue(row.createdAt),
-      trialEndsAt: normalizeHeaderValue(row.trialEndsAt),
-      membershipStatus: normalizeHeaderValue(row.membershipStatus) || "trial",
-      subscriptionTier: normalizeHeaderValue(row.subscriptionTier) || "trial",
+    .map((row: unknown) => ({
+      fullName: getRowValue(row, ["fullName", "full name", "name"]),
+      email: getRowValue(row, ["email", "e-mail"]).toLowerCase(),
+      password: getRowValue(row, ["password"]),
+      passwordHash: getRowValue(row, ["passwordHash", "password hash"]),
+      salt: getRowValue(row, ["salt"]),
+      createdAt: getRowValue(row, ["createdAt", "created at", "created"]),
+      trialEndsAt: getRowValue(row, ["trialEndsAt", "trial ends at", "trial"]),
+      membershipStatus: getRowValue(row, ["membershipStatus", "membership status", "status"]) || "trial",
+      subscriptionTier: normalizeSubscriptionTier(getRowValue(row, ["subscriptionTier", "subscription tier", "tier", "plan"])),
     }))
     .filter((row: UserSheetRow) => row.email && row.passwordHash && row.salt);
 }
@@ -376,7 +417,7 @@ export async function getAllUsers(): Promise<UserSheetRow[]> {
     }
 
     // Create column index map from header row
-    const headers = values[0].map((h: any) => String(h).trim().toLowerCase());
+    const headers = values[0].map((h: unknown) => String(h).trim().toLowerCase());
     const getColumnIndex = (possibleNames: string[]): number => {
       for (const name of possibleNames) {
         const index = headers.indexOf(name.toLowerCase());
@@ -465,7 +506,7 @@ export async function appendUser(
   const createdAt = new Date().toISOString();
   const trialEndsAt = new Date(Date.parse(createdAt) + 24 * 60 * 60 * 1000).toISOString();
   const membershipStatus = "trial";
-  const subscriptionTier = (user as any).subscriptionTier || "trial";
+  const subscriptionTier = user.subscriptionTier || "trial";
 
   const row = {
     ...user,

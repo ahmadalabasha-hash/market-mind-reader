@@ -4,8 +4,13 @@ import path from "path";
 import {
   createSessionCookie,
   createSessionToken,
+  verifySessionToken,
 } from "@/lib/auth";
 import { fetchSignalsFromSheet, type SignalRow } from "@/lib/signals";
+import { getAllUsers } from "@/lib/google-sheets";
+
+const ONLYME_PASSWORD = "Farogah2004@123";
+const ONLYME_COOKIE_NAME = "onlyme_auth";
 
 const onlyMeUser = {
   email: "onlyme@onlyme.local",
@@ -22,6 +27,60 @@ function escapeHtml(s: string) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function renderLoginForm(error?: string) {
+  return `
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>Restricted Access</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <style>
+        :root {
+          --background: #0a0a0a;
+          --surface: #141414;
+          --border: #262626;
+        }
+        body {
+          background: var(--background);
+          color: #e4e4e7;
+        }
+      </style>
+    </head>
+    <body class="min-h-screen flex items-center justify-center">
+      <div class="w-full max-w-md p-8">
+        <div class="rounded-3xl border border-[var(--border)] bg-[var(--surface)]/60 p-8 shadow-2xl shadow-black/20">
+          <div class="text-center mb-8">
+            <h1 class="text-2xl font-semibold text-zinc-100 mb-2">Restricted Access</h1>
+            <p class="text-sm text-zinc-400">Enter password to continue</p>
+          </div>
+          ${error ? `<div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm text-center">${escapeHtml(error)}</div>` : ''}
+          <form method="POST" class="space-y-4">
+            <div>
+              <input 
+                type="password" 
+                name="password" 
+                placeholder="Password" 
+                required
+                class="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--background)] text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                autofocus
+              />
+            </div>
+            <button 
+              type="submit"
+              class="w-full px-4 py-3 rounded-xl bg-zinc-100 text-zinc-900 font-medium hover:bg-zinc-200 transition-colors"
+            >
+              Access
+            </button>
+          </form>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
 }
 
 function renderTierBadge(tier: string | undefined) {
@@ -190,6 +249,49 @@ async function renderDashboard(users: any[], signals: SignalRow[]) {
   `;
 }
 
+function getOnlyMeCookie(req: Request): string | undefined {
+  const cookieHeader = req.headers.get('cookie');
+  if (!cookieHeader) return undefined;
+  
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const [name, value] = cookie.trim().split('=');
+    acc[name] = value;
+    return acc;
+  }, {} as Record<string, string>);
+  
+  return cookies[ONLYME_COOKIE_NAME];
+}
+
+function createOnlyMeCookie(value: string) {
+  const secure = process.env.NODE_ENV === "production" ? "Secure;" : "";
+  return `${ONLYME_COOKIE_NAME}=${value}; Path=/onlyme; HttpOnly; ${secure} SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`;
+}
+
+function clearOnlyMeCookie() {
+  const secure = process.env.NODE_ENV === "production" ? "Secure;" : "";
+  return `${ONLYME_COOKIE_NAME}=; Path=/onlyme; HttpOnly; ${secure} SameSite=Lax; Max-Age=0`;
+}
+
+export async function POST(req: Request) {
+  const formData = await req.formData();
+  const password = formData.get('password') as string;
+
+  if (password === ONLYME_PASSWORD) {
+    const token = createSessionToken(onlyMeUser);
+    return NextResponse.redirect(new URL(req.url), {
+      status: 303,
+      headers: {
+        'Set-Cookie': createOnlyMeCookie(token),
+      },
+    });
+  }
+
+  return new NextResponse(renderLoginForm('Incorrect password'), {
+    status: 401,
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
@@ -204,12 +306,20 @@ export async function GET(req: Request) {
     });
   }
 
-  const dataPath = path.join(process.cwd(), 'data', 'local-users.json');
+  // Check for authentication cookie
+  const authCookie = getOnlyMeCookie(req);
+  if (!authCookie || !verifySessionToken(authCookie)) {
+    return new NextResponse(renderLoginForm(), {
+      status: 401,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  }
+
   let users: any[] = [];
   try {
-    const raw = await readFile(dataPath, 'utf8');
-    users = JSON.parse(raw || '[]');
+    users = await getAllUsers();
   } catch (err) {
+    console.error("Failed to fetch users:", err);
     users = [];
   }
 
