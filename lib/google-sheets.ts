@@ -354,6 +354,7 @@ async function fetchUsersViaScript(): Promise<UserSheetRow[]> {
       headers: {
         "Accept": "application/json",
       },
+      redirect: "follow",
     });
   } catch (err) {
     console.error("[fetchUsersViaScript] Fetch error:", err);
@@ -361,6 +362,7 @@ async function fetchUsersViaScript(): Promise<UserSheetRow[]> {
   }
 
   console.log("[fetchUsersViaScript] Response status:", response.status);
+  console.log("[fetchUsersViaScript] Response URL:", response.url);
 
   if (!response.ok) {
     const text = await response.text();
