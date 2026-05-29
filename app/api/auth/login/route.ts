@@ -127,6 +127,7 @@ export async function POST(req: Request) {
     );
   } catch (err) {
     console.error("Login error:", err);
+    console.error("Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
     return NextResponse.json(
       { error: "Unable to process login. Please try again." },
       { status: 500 },
