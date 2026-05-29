@@ -20,7 +20,7 @@ export async function GET() {
     
     return NextResponse.json(forecastData);
   } catch (error) {
-    console.error('Forecast error:', error);
+    console.error('Sector forecast error:', error);
     return NextResponse.json(
       { error: 'Failed to load sector forecast' },
       { status: 500 }
