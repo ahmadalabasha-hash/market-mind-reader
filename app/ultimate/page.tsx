@@ -66,6 +66,24 @@ export default async function UltimatePage() {
           {/* Ultimate Section - Gamma Levels + TradingView Chart */}
           <UltimateSection userTier={userTier} isSuperAdmin={isSuperAdmin} />
 
+          {/* AI Forecast Section - Ultimate Only */}
+          <div className="mt-8">
+            <div className="rounded-xl border border-zinc-700 bg-zinc-800/30 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-zinc-100">AI Sales Forecast</h2>
+                  <p className="text-sm text-zinc-400">TimesFM-powered time series forecasting</p>
+                </div>
+                <a
+                  href="/forecast"
+                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 px-6 py-3 text-sm font-semibold text-zinc-950 transition-all hover:from-amber-500 hover:to-orange-600"
+                >
+                  View Forecast →
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* Basic + Pro Signals */}
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Basic Signals - Market Indices */}

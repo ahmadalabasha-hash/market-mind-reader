@@ -44,12 +44,6 @@ export default function Home() {
               >
                 View Pricing
               </Link>
-              <Link
-                href="/forecast"
-                className="inline-flex items-center justify-center rounded-xl border border-zinc-600 bg-zinc-800/50 px-10 py-5 text-lg font-semibold text-zinc-200 transition-all hover:bg-zinc-700 hover:text-white"
-              >
-                View AI Sales Forecast →
-              </Link>
             </div>
           </div>
         </div>

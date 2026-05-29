@@ -1,5 +1,9 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import fs from 'fs';
 import path from 'path';
+import { verifySessionToken } from "@/lib/auth";
+import { SESSION_COOKIE_NAME, getUserTier, hasUltimateAccess } from "@/lib/auth-types";
 
 interface ForecastData {
   historical: number[];
@@ -19,6 +23,22 @@ async function getForecastData(): Promise<ForecastData | null> {
 }
 
 export default async function SimpleForecastPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const session = token ? verifySessionToken(token) : null;
+
+  if (!session) {
+    redirect("/auth");
+  }
+
+  const userTier = getUserTier(session);
+  const isSuperAdmin = session?.isSuperAdmin || false;
+
+  // Access control: Only Ultimate users can access forecast
+  if (!hasUltimateAccess(userTier, isSuperAdmin)) {
+    redirect("/pricing");
+  }
+
   const data = await getForecastData();
 
   if (!data) return <div className="p-8">No data available</div>;
