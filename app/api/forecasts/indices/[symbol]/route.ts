@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  { params }: { params: { symbol: string } }
+  { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
-    const { symbol } = params;
+    const { symbol } = await params;
     const filePath = path.join(process.cwd(), 'timesfm', 'forecasts', `${symbol.toLowerCase()}_forecast.json`);
     
     if (!fs.existsSync(filePath)) {
