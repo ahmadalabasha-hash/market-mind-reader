@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import VolatilityCard from './VolatilityCard';
+import ForecastChart from './ForecastChart';
 
 interface ForecastData {
   symbol: string;
@@ -26,6 +28,7 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
   const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -89,44 +92,68 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
   const isPositive = parseFloat(expectedReturn) > 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-          <p className="text-sm text-gray-600">{symbol}</p>
+    <>
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
+            <p className="text-sm text-gray-600">{symbol}</p>
+          </div>
+          <div className="text-right">
+            <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositive ? '+' : ''}{expectedReturn}%
+            </p>
+            <p className="text-xs text-gray-500">Expected Return</p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {isPositive ? '+' : ''}{expectedReturn}%
+
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Current Price:</span>
+            <span className="text-gray-900">${data.last_price?.toFixed(2) || '--'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Forecast Mean:</span>
+            <span className="text-gray-900">${data.forecast_mean?.toFixed(2) || '--'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Confidence:</span>
+            <span className="text-gray-900">±${data.forecast_std?.toFixed(2) || '--'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Horizon:</span>
+            <span className="text-gray-900">{data.horizon || '--'} days</span>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <VolatilityCard symbol={symbol} />
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => setShowChart(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            </svg>
+            View Chart
+          </button>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <p className="text-xs text-gray-500">
+            Updated: {data.last_updated ? new Date(data.last_updated).toLocaleDateString() : '--'}
           </p>
-          <p className="text-xs text-gray-500">Expected Return</p>
         </div>
       </div>
 
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Current Price:</span>
-          <span className="text-gray-900">${data.last_price?.toFixed(2) || '--'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Forecast Mean:</span>
-          <span className="text-gray-900">${data.forecast_mean?.toFixed(2) || '--'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Confidence:</span>
-          <span className="text-gray-900">±${data.forecast_std?.toFixed(2) || '--'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Horizon:</span>
-          <span className="text-gray-900">{data.horizon || '--'} days</span>
-        </div>
-      </div>
-
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500">
-          Updated: {data.last_updated ? new Date(data.last_updated).toLocaleDateString() : '--'}
-        </p>
-      </div>
-    </div>
+      <ForecastChart
+        symbol={symbol}
+        isOpen={showChart}
+        onClose={() => setShowChart(false)}
+      />
+    </>
   );
 }
