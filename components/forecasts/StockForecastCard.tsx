@@ -46,10 +46,10 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-zinc-700 bg-zinc-800/30 p-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
         <div className="animate-pulse">
-          <div className="h-4 bg-zinc-700 rounded w-1/3 mb-2"></div>
-          <div className="h-3 bg-zinc-700 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
         </div>
       </div>
     );
@@ -57,8 +57,8 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
 
   if (error || !data) {
     return (
-      <div className="rounded-xl border border-zinc-700 bg-zinc-800/30 p-6">
-        <p className="text-sm text-zinc-500">Forecast not available</p>
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <p className="text-sm text-gray-500">Forecast not available</p>
       </div>
     );
   }
@@ -67,41 +67,41 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
   const isPositive = parseFloat(expectedReturn) > 0;
 
   return (
-    <div className="rounded-xl border border-zinc-700 bg-zinc-800/30 p-6">
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-zinc-100">{name}</h3>
-          <p className="text-sm text-zinc-400">{symbol}</p>
+          <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
+          <p className="text-sm text-gray-600">{symbol}</p>
         </div>
         <div className={`text-right`}>
-          <p className={`text-2xl font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+          <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
             {isPositive ? '+' : ''}{expectedReturn}%
           </p>
-          <p className="text-xs text-zinc-500">Expected Return</p>
+          <p className="text-xs text-gray-500">Expected Return</p>
         </div>
       </div>
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-zinc-400">Current Price:</span>
-          <span className="text-zinc-100">${data.last_price.toFixed(2)}</span>
+          <span className="text-gray-600">Current Price:</span>
+          <span className="text-gray-900">${data.last_price.toFixed(2)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-zinc-400">Forecast Mean:</span>
-          <span className="text-zinc-100">${data.forecast_mean.toFixed(2)}</span>
+          <span className="text-gray-600">Forecast Mean:</span>
+          <span className="text-gray-900">${data.forecast_mean.toFixed(2)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-zinc-400">Confidence:</span>
-          <span className="text-zinc-100">±${data.forecast_std.toFixed(2)}</span>
+          <span className="text-gray-600">Confidence:</span>
+          <span className="text-gray-900">±${data.forecast_std.toFixed(2)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-zinc-400">Horizon:</span>
-          <span className="text-zinc-100">{data.horizon} days</span>
+          <span className="text-gray-600">Horizon:</span>
+          <span className="text-gray-900">{data.horizon} days</span>
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-zinc-700">
-        <p className="text-xs text-zinc-500">
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <p className="text-xs text-gray-500">
           Updated: {new Date(data.last_updated).toLocaleDateString()}
         </p>
       </div>

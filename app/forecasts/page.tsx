@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import StockForecastCard from "@/components/forecasts/StockForecastCard";
 
 export default function ForecastsPage() {
   const router = useRouter();
@@ -12,29 +13,23 @@ export default function ForecastsPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        console.log('Checking auth...');
         const response = await fetch('/api/auth/session');
-        console.log('Auth response:', response.status);
         
         if (!response.ok) {
-          console.log('Auth failed, redirecting to /auth');
           router.push('/auth');
           return;
         }
         
         const session = await response.json();
-        console.log('Session:', session);
         
         // Check if user has Ultimate access
         if (!session.user || (session.user.subscriptionTier !== 'ultimate' && !session.user.isSuperAdmin)) {
-          console.log('Not Ultimate user, redirecting to /pricing');
           router.push('/pricing');
           return;
         }
         
         setAuthorized(true);
       } catch (err) {
-        console.error('Auth error:', err);
         setError(err instanceof Error ? err.message : 'Auth failed');
         router.push('/auth');
       } finally {
@@ -65,6 +60,21 @@ export default function ForecastsPage() {
     return null;
   }
 
+  const stocks = [
+    { symbol: "AAPL", name: "Apple Inc." },
+    { symbol: "TSLA", name: "Tesla Inc." },
+    { symbol: "NVDA", name: "NVIDIA Corp." },
+    { symbol: "MSFT", name: "Microsoft Corp." },
+    { symbol: "GOOGL", name: "Alphabet Inc." },
+  ];
+
+  const indices = [
+    { symbol: "SPY", name: "S&P 500 ETF" },
+    { symbol: "QQQ", name: "NASDAQ 100 ETF" },
+    { symbol: "IWM", name: "Russell 2000 ETF" },
+    { symbol: "DIA", name: "Dow Jones ETF" },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -77,12 +87,45 @@ export default function ForecastsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4">Forecasts Coming Soon</h2>
-          <p className="text-gray-600">
-            Stock and index forecasts will be displayed here.
-          </p>
-        </div>
+        {/* Stock Forecasts */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900">Stock Price Forecasts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stocks.map((stock) => (
+              <StockForecastCard key={stock.symbol} symbol={stock.symbol} name={stock.name} />
+            ))}
+          </div>
+        </section>
+
+        {/* Index Forecasts */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900">Market Index Forecasts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {indices.map((index) => (
+              <StockForecastCard key={index.symbol} symbol={index.symbol} name={index.name} />
+            ))}
+          </div>
+        </section>
+
+        {/* Sector Rotation */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900">Sector Rotation Analysis</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <p className="text-gray-600">
+              Sector rotation forecasts help identify which sectors are expected to outperform in the coming weeks.
+            </p>
+            <div className="mt-4">
+              <a
+                href="/api/forecasts/sectors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                View Sector Data
+              </a>
+            </div>
+          </div>
+        </section>
 
         <div className="mt-8 text-center">
           <a href="/ultimate" className="text-blue-600 hover:text-blue-800">
