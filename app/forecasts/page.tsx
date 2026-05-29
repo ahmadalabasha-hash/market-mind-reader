@@ -1,24 +1,51 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { verifySessionToken } from "@/lib/auth";
-import { SESSION_COOKIE_NAME, getUserTier, hasUltimateAccess } from "@/lib/auth-types";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import StockForecastCard from "@/components/forecasts/StockForecastCard";
 
-export default async function ForecastsPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? verifySessionToken(token) : null;
+export default function ForecastsPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
 
-  if (!session) {
-    redirect("/auth");
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/session');
+        if (!response.ok) {
+          router.push('/auth');
+          return;
+        }
+        const session = await response.json();
+        
+        // Check if user has Ultimate access
+        if (!session.user || (session.user.subscriptionTier !== 'ultimate' && !session.user.isSuperAdmin)) {
+          router.push('/pricing');
+          return;
+        }
+        
+        setAuthorized(true);
+      } catch (error) {
+        router.push('/auth');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    checkAuth();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
   }
 
-  const userTier = getUserTier(session);
-  const isSuperAdmin = session?.isSuperAdmin || false;
-
-  // Access control: Only Ultimate users can access forecasts
-  if (!hasUltimateAccess(userTier, isSuperAdmin)) {
-    redirect("/pricing");
+  if (!authorized) {
+    return null;
   }
 
   const stocks = [
