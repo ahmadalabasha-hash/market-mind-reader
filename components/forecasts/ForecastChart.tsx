@@ -2,14 +2,20 @@
 
 import { useEffect, useState, useRef } from 'react';
 
+interface ForecastHorizon {
+  forecast: number[];
+  horizon: number;
+  forecast_mean: number;
+  forecast_std: number;
+  confidence_upper: number[];
+  confidence_lower: number[];
+}
+
 interface ForecastData {
   symbol: string;
   historical: number[];
-  forecast: number[];
-  confidence_upper: number[];
-  confidence_lower: number[];
   last_price: number;
-  forecast_mean: number;
+  forecasts: Record<string, ForecastHorizon>;
   last_updated: string;
 }
 
@@ -22,6 +28,7 @@ interface ForecastChartProps {
 export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChartProps) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedHorizon, setSelectedHorizon] = useState<string>('30');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -51,6 +58,9 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const forecastData = data.forecasts[selectedHorizon];
+    if (!forecastData) return;
+
     // Set canvas size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * 2;
@@ -61,7 +71,7 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     ctx.clearRect(0, 0, rect.width, rect.height);
 
     // Combine historical and forecast data
-    const allData = [...data.historical, ...data.forecast];
+    const allData = [...data.historical, ...forecastData.forecast];
     const minPrice = Math.min(...allData) * 0.98;
     const maxPrice = Math.max(...allData) * 1.02;
     const priceRange = maxPrice - minPrice;
@@ -113,8 +123,8 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     ctx.beginPath();
     
     // Upper bound
-    for (let i = 0; i < data.forecast.length; i++) {
-      const point = toCoords(historicalPoints + i, data.confidence_upper[i]);
+    for (let i = 0; i < forecastData.forecast.length; i++) {
+      const point = toCoords(historicalPoints + i, forecastData.confidence_upper[i]);
       if (i === 0) {
         ctx.moveTo(point.x, point.y);
       } else {
@@ -123,8 +133,8 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     }
     
     // Lower bound (reverse)
-    for (let i = data.forecast.length - 1; i >= 0; i--) {
-      const point = toCoords(historicalPoints + i, data.confidence_lower[i]);
+    for (let i = forecastData.forecast.length - 1; i >= 0; i--) {
+      const point = toCoords(historicalPoints + i, forecastData.confidence_lower[i]);
       ctx.lineTo(point.x, point.y);
     }
     
@@ -149,8 +159,8 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    for (let i = 0; i < data.forecast.length; i++) {
-      const point = toCoords(historicalPoints + i, data.forecast[i]);
+    for (let i = 0; i < forecastData.forecast.length; i++) {
+      const point = toCoords(historicalPoints + i, forecastData.forecast[i]);
       if (i === 0) {
         ctx.moveTo(point.x, point.y);
       } else {
@@ -177,7 +187,7 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     ctx.fillText(`$${data.last_price.toFixed(2)}`, rect.width - padding.right + 5, currentPoint.y + 4);
 
     // Draw forecast mean line
-    const forecastPoint = toCoords(historicalPoints + data.forecast.length - 1, data.forecast_mean);
+    const forecastPoint = toCoords(historicalPoints + forecastData.forecast.length - 1, forecastData.forecast_mean);
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 5]);
@@ -191,7 +201,7 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     ctx.fillStyle = '#3b82f6';
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'left';
-    ctx.fillText(`$${data.forecast_mean.toFixed(2)}`, rect.width - padding.right + 5, forecastPoint.y + 4);
+    ctx.fillText(`$${forecastData.forecast_mean.toFixed(2)}`, rect.width - padding.right + 5, forecastPoint.y + 4);
 
     // Draw legend
     const legendY = 20;
@@ -213,9 +223,11 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
     ctx.fillStyle = '#374151';
     ctx.fillText('Confidence', 215, legendY);
 
-  }, [isOpen, data]);
+  }, [isOpen, data, selectedHorizon]);
 
   if (!isOpen) return null;
+
+  const forecastData = data?.forecasts[selectedHorizon];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -224,7 +236,7 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
           <div>
             <h2 className="text-xl font-bold text-gray-900">{symbol} Price Forecast</h2>
             <p className="text-sm text-gray-500">
-              Historical data + 30-day forecast with confidence intervals
+              Historical data + {selectedHorizon}-day forecast with confidence intervals
             </p>
           </div>
           <button
@@ -237,12 +249,30 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
           </button>
         </div>
 
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex gap-2">
+            {['1', '7', '30'].map((horizon) => (
+              <button
+                key={horizon}
+                onClick={() => setSelectedHorizon(horizon)}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  selectedHorizon === horizon
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {horizon === '1' ? '1-Day' : horizon === '7' ? '7-Day' : '30-Day'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="p-4">
           {loading ? (
             <div className="h-[500px] flex items-center justify-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
-          ) : data ? (
+          ) : data && forecastData ? (
             <div className="h-[500px]">
               <canvas
                 ref={canvasRef}
@@ -257,7 +287,7 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
           )}
         </div>
 
-        {data && (
+        {data && forecastData && (
           <div className="p-4 border-t border-gray-200 bg-gray-50">
             <div className="grid grid-cols-4 gap-4 text-sm">
               <div>
@@ -265,13 +295,13 @@ export default function ForecastChart({ symbol, isOpen, onClose }: ForecastChart
                 <p className="font-semibold text-gray-900">${data.last_price.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Forecast Mean</p>
-                <p className="font-semibold text-blue-600">${data.forecast_mean.toFixed(2)}</p>
+                <p className="text-gray-500">{selectedHorizon}-Day Target</p>
+                <p className="font-semibold text-blue-600">${forecastData.forecast_mean.toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-gray-500">Expected Return</p>
-                <p className={`font-semibold ${((data.forecast_mean - data.last_price) / data.last_price * 100) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {((data.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)}%
+                <p className={`font-semibold ${((forecastData.forecast_mean - data.last_price) / data.last_price * 100) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {((forecastData.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)}%
                 </p>
               </div>
               <div>

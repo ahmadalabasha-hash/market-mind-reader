@@ -29,13 +29,14 @@ export default function VolatilityCard({ symbol }: { symbol: string }) {
         
         const forecastData = await response.json();
         
-        if (mounted && forecastData && forecastData.forecast_std) {
+        if (mounted && forecastData && forecastData.forecasts) {
           // Calculate historical volatility from historical prices
           const historical = forecastData.historical || [];
           const historicalVolatility = calculateVolatility(historical);
           
-          // Forecast volatility is the standard deviation of the forecast
-          const forecastVolatility = forecastData.forecast_std || 0;
+          // Use 7-day forecast volatility
+          const sevenDayForecast = forecastData.forecasts["7"];
+          const forecastVolatility = sevenDayForecast?.forecast_std || 0;
           
           // Determine trend
           let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
@@ -124,7 +125,7 @@ export default function VolatilityCard({ symbol }: { symbol: string }) {
     <div className="rounded-xl border border-gray-200 bg-white p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-500 mb-1">30-Day Volatility</p>
+          <p className="text-xs text-gray-500 mb-1">7-Day Volatility</p>
           <p className="text-lg font-bold text-gray-900">
             {data.forecast_volatility.toFixed(2)}%
           </p>

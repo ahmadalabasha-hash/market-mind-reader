@@ -36,7 +36,7 @@ class TimesFMForecastService:
         return forecast[0].tolist()
     
     def stock_price_forecast(self, symbol: str, horizon: int = 30) -> Dict:
-        """Generate stock price forecast"""
+        """Generate stock price forecast with multiple horizons"""
         print(f"Generating forecast for {symbol}...")
         
         # Fetch historical data
@@ -45,24 +45,30 @@ class TimesFMForecastService:
         if not historical:
             return {"error": f"No data available for {symbol}"}
         
-        # Generate forecast
-        forecast = self.generate_forecast(historical, horizon=horizon)
+        # Generate forecasts for multiple horizons
+        horizons = [1, 7, 30]
+        forecasts_by_horizon = {}
         
-        # Calculate confidence bounds (simple approximation)
-        mean = sum(forecast) / len(forecast)
-        std = (sum((x - mean) ** 2 for x in forecast) / len(forecast)) ** 0.5
+        for h in horizons:
+            forecast = self.generate_forecast(historical, horizon=h)
+            mean = sum(forecast) / len(forecast)
+            std = (sum((x - mean) ** 2 for x in forecast) / len(forecast)) ** 0.5
+            
+            forecasts_by_horizon[str(h)] = {
+                "forecast": forecast,
+                "horizon": h,
+                "forecast_mean": mean,
+                "forecast_std": std,
+                "confidence_upper": [x + std for x in forecast],
+                "confidence_lower": [x - std for x in forecast]
+            }
         
         result = {
             "symbol": symbol,
             "type": "stock_price",
             "historical": historical[-90:],  # Last 90 days
-            "forecast": forecast,
-            "horizon": horizon,
             "last_price": historical[-1],
-            "forecast_mean": mean,
-            "forecast_std": std,
-            "confidence_upper": [x + std for x in forecast],
-            "confidence_lower": [x - std for x in forecast],
+            "forecasts": forecasts_by_horizon,
             "last_updated": datetime.now().isoformat(),
             "model": "TimesFM 2.5"
         }
@@ -70,11 +76,11 @@ class TimesFMForecastService:
         return result
     
     def index_forecast(self, symbol: str, horizon: int = 30) -> Dict:
-        """Generate market index forecast"""
+        """Generate market index forecast with multiple horizons"""
         return self.stock_price_forecast(symbol, horizon)
     
     def sector_rotation_forecast(self, symbols: List[str], horizon: int = 30) -> Dict:
-        """Generate sector rotation forecast"""
+        """Generate sector rotation forecast with multiple horizons"""
         print(f"Generating sector rotation forecast for {len(symbols)} sectors...")
         
         sector_forecasts = {}
@@ -83,10 +89,10 @@ class TimesFMForecastService:
             if "error" not in forecast:
                 sector_forecasts[symbol] = forecast
         
-        # Rank sectors by expected return
+        # Rank sectors by 7-day expected return
         ranked = sorted(
             sector_forecasts.items(),
-            key=lambda x: x[1]["forecast_mean"] / x[1]["last_price"],
+            key=lambda x: x[1]["forecasts"]["7"]["forecast_mean"] / x[1]["last_price"],
             reverse=True
         )
         
@@ -94,7 +100,7 @@ class TimesFMForecastService:
             "type": "sector_rotation",
             "sectors": [s[0] for s in ranked],
             "forecasts": {s[0]: s[1] for s in ranked},
-            "rankings": [{"symbol": s[0], "expected_return": s[1]["forecast_mean"] / s[1]["last_price"]} for s in ranked],
+            "rankings": [{"symbol": s[0], "expected_return": s[1]["forecasts"]["7"]["forecast_mean"] / s[1]["last_price"]} for s in ranked],
             "last_updated": datetime.now().isoformat(),
             "model": "TimesFM 2.5"
         }

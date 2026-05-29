@@ -4,17 +4,21 @@ import { useEffect, useState } from 'react';
 import VolatilityCard from './VolatilityCard';
 import ForecastChart from './ForecastChart';
 
-interface ForecastData {
-  symbol: string;
-  type: string;
-  historical: number[];
+interface ForecastHorizon {
   forecast: number[];
   horizon: number;
-  last_price: number;
   forecast_mean: number;
   forecast_std: number;
   confidence_upper: number[];
   confidence_lower: number[];
+}
+
+interface ForecastData {
+  symbol: string;
+  type: string;
+  historical: number[];
+  last_price: number;
+  forecasts: Record<string, ForecastHorizon>;
   last_updated: string;
   model: string;
 }
@@ -86,10 +90,23 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
     );
   }
 
-  const expectedReturn = data.last_price > 0 
-    ? ((data.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
+  const oneDayForecast = data.forecasts?.["1"];
+  const sevenDayForecast = data.forecasts?.["7"];
+  const thirtyDayForecast = data.forecasts?.["30"];
+
+  const oneDayReturn = oneDayForecast && data.last_price > 0 
+    ? ((oneDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
     : '0.00';
-  const isPositive = parseFloat(expectedReturn) > 0;
+  const sevenDayReturn = sevenDayForecast && data.last_price > 0 
+    ? ((sevenDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
+    : '0.00';
+  const thirtyDayReturn = thirtyDayForecast && data.last_price > 0 
+    ? ((thirtyDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
+    : '0.00';
+
+  const isPositiveOneDay = parseFloat(oneDayReturn) > 0;
+  const isPositiveSevenDay = parseFloat(sevenDayReturn) > 0;
+  const isPositiveThirtyDay = parseFloat(thirtyDayReturn) > 0;
 
   return (
     <>
@@ -100,29 +117,44 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
             <p className="text-sm text-gray-600">{symbol}</p>
           </div>
           <div className="text-right">
-            <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {isPositive ? '+' : ''}{expectedReturn}%
+            <p className="text-2xl font-bold text-gray-900">${data.last_price?.toFixed(2) || '--'}</p>
+            <p className="text-xs text-gray-500">Current Price</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <p className="text-xs text-gray-500 mb-1">1-Day</p>
+            <p className={`text-lg font-bold ${isPositiveOneDay ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositiveOneDay ? '+' : ''}{oneDayReturn}%
             </p>
-            <p className="text-xs text-gray-500">Expected Return</p>
+          </div>
+          <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <p className="text-xs text-gray-500 mb-1">7-Day</p>
+            <p className={`text-lg font-bold ${isPositiveSevenDay ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositiveSevenDay ? '+' : ''}{sevenDayReturn}%
+            </p>
+          </div>
+          <div className="text-center p-3 bg-purple-50 rounded-lg">
+            <p className="text-xs text-gray-500 mb-1">30-Day</p>
+            <p className={`text-lg font-bold ${isPositiveThirtyDay ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositiveThirtyDay ? '+' : ''}{thirtyDayReturn}%
+            </p>
           </div>
         </div>
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600">Current Price:</span>
-            <span className="text-gray-900">${data.last_price?.toFixed(2) || '--'}</span>
+            <span className="text-gray-600">1-Day Target:</span>
+            <span className="text-gray-900">${oneDayForecast?.forecast_mean?.toFixed(2) || '--'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Forecast Mean:</span>
-            <span className="text-gray-900">${data.forecast_mean?.toFixed(2) || '--'}</span>
+            <span className="text-gray-600">7-Day Target:</span>
+            <span className="text-gray-900">${sevenDayForecast?.forecast_mean?.toFixed(2) || '--'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Confidence:</span>
-            <span className="text-gray-900">±${data.forecast_std?.toFixed(2) || '--'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Horizon:</span>
-            <span className="text-gray-900">{data.horizon || '--'} days</span>
+            <span className="text-gray-600">30-Day Target:</span>
+            <span className="text-gray-900">${thirtyDayForecast?.forecast_mean?.toFixed(2) || '--'}</span>
           </div>
         </div>
 
