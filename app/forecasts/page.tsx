@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import StockForecastCard from "@/components/forecasts/StockForecastCard";
 
 export default function ForecastsPage() {
   const router = useRouter();
@@ -12,29 +13,23 @@ export default function ForecastsPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        console.log('Checking auth...');
         const response = await fetch('/api/auth/session');
-        console.log('Auth response status:', response.status);
         
         if (!response.ok) {
-          console.log('Auth failed, redirecting');
           router.push('/auth');
           return;
         }
         
         const session = await response.json();
-        console.log('Session data:', session);
         
         // Check if user has Ultimate access
         if (!session.user || (session.user.subscriptionTier !== 'ultimate' && !session.user.isSuperAdmin)) {
-          console.log('Not Ultimate user, redirecting to pricing');
           router.push('/pricing');
           return;
         }
         
         setAuthorized(true);
       } catch (err) {
-        console.error('Auth error:', err);
         setError(err instanceof Error ? err.message : 'Auth failed');
       } finally {
         setLoading(false);
@@ -64,6 +59,11 @@ export default function ForecastsPage() {
     return null;
   }
 
+  const stocks = [
+    { symbol: "AAPL", name: "Apple Inc." },
+    { symbol: "TSLA", name: "Tesla Inc." },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -76,12 +76,14 @@ export default function ForecastsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4">Forecasts</h2>
-          <p className="text-gray-600">
-            Forecast cards will be displayed here.
-          </p>
-        </div>
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900">Stock Price Forecasts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stocks.map((stock) => (
+              <StockForecastCard key={stock.symbol} symbol={stock.symbol} name={stock.name} />
+            ))}
+          </div>
+        </section>
 
         <div className="mt-8 text-center">
           <a href="/ultimate" className="text-blue-600 hover:text-blue-800">

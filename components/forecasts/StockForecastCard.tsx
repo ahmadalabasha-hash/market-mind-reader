@@ -2,55 +2,21 @@
 
 import { useEffect, useState } from 'react';
 
-interface ForecastData {
-  symbol: string;
-  type: string;
-  historical: number[];
-  forecast: number[];
-  horizon: number;
-  last_price: number;
-  forecast_mean: number;
-  forecast_std: number;
-  confidence_upper: number[];
-  confidence_lower: number[];
-  last_updated: string;
-  model: string;
-}
-
 interface StockForecastCardProps {
   symbol: string;
   name: string;
 }
 
 export default function StockForecastCard({ symbol, name }: StockForecastCardProps) {
-  const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchForecast() {
-      try {
-        console.log(`Fetching forecast for ${symbol}...`);
-        const response = await fetch(`/api/forecasts/stocks/${symbol}`);
-        console.log(`Response status for ${symbol}:`, response.status);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch forecast: ${response.status}`);
-        }
-        
-        const forecastData = await response.json();
-        console.log(`Forecast data for ${symbol}:`, forecastData);
-        setData(forecastData);
-      } catch (err) {
-        console.error(`Error fetching forecast for ${symbol}:`, err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchForecast();
-  }, [symbol]);
+    // Simulate loading
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
+  }, []);
 
   if (loading) {
     return (
@@ -63,67 +29,33 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
     );
   }
 
-  if (error || !data) {
-    return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <p className="text-sm text-gray-500">
-          {error ? `Error: ${error}` : 'Forecast not available'}
-        </p>
-      </div>
-    );
-  }
-
-  try {
-    const expectedReturn = ((data.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2);
-    const isPositive = parseFloat(expectedReturn) > 0;
-
-    return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-            <p className="text-sm text-gray-600">{symbol}</p>
-          </div>
-          <div className={`text-right`}>
-            <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {isPositive ? '+' : ''}{expectedReturn}%
-            </p>
-            <p className="text-xs text-gray-500">Expected Return</p>
-          </div>
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
+          <p className="text-sm text-gray-600">{symbol}</p>
         </div>
-
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Current Price:</span>
-            <span className="text-gray-900">${data.last_price.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Forecast Mean:</span>
-            <span className="text-gray-900">${data.forecast_mean.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Confidence:</span>
-            <span className="text-gray-900">±${data.forecast_std.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Horizon:</span>
-            <span className="text-gray-900">{data.horizon} days</span>
-          </div>
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <p className="text-xs text-gray-500">
-            Updated: {new Date(data.last_updated).toLocaleDateString()}
-          </p>
+        <div className="text-right">
+          <p className="text-2xl font-bold text-gray-900">--</p>
+          <p className="text-xs text-gray-500">Expected Return</p>
         </div>
       </div>
-    );
-  } catch (renderError) {
-    console.error(`Error rendering card for ${symbol}:`, renderError);
-    return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <p className="text-sm text-red-500">Error displaying forecast</p>
+
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span className="text-gray-600">Current Price:</span>
+          <span className="text-gray-900">--</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Forecast Mean:</span>
+          <span className="text-gray-900">--</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Status:</span>
+          <span className="text-gray-900">Loading...</span>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
