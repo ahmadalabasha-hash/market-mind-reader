@@ -7,12 +7,24 @@ let sqlInstance: ReturnType<typeof neon> | null = null;
 
 function getSql() {
   if (!sqlInstance) {
-    const databaseUrl = process.env.DATABASE_URL;
+    let databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
       console.warn('DATABASE_URL environment variable is not set. Database operations will fail.');
       return null;
     }
-    sqlInstance = neon(databaseUrl);
+    
+    // Handle malformed DATABASE_URL (e.g., "DATABASE_URL = postgresql://...")
+    if (databaseUrl.includes('DATABASE_URL =')) {
+      databaseUrl = databaseUrl.split('DATABASE_URL =')[1].trim();
+      console.log('Fixed malformed DATABASE_URL');
+    }
+    
+    try {
+      sqlInstance = neon(databaseUrl);
+    } catch (error) {
+      console.error('Failed to initialize database connection:', error);
+      return null;
+    }
   }
   return sqlInstance;
 }
