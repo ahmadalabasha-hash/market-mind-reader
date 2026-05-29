@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserByEmail as getUserByEmailDb, initDb } from "@/lib/db";
+import { getUserByEmail as getUserByEmailDb, getUserByEmailFallback, initDb } from "@/lib/db";
 import {
   createSessionCookie,
   createSessionToken,
@@ -45,7 +45,13 @@ export async function POST(req: Request) {
 
   try {
     await initDb();
-    const user = await getUserByEmailDb(email);
+    let user = await getUserByEmailDb(email);
+    
+    // Fallback to local-users.json if database is not available
+    if (!user) {
+      user = await getUserByEmailFallback(email);
+    }
+    
     if (!user) {
       return NextResponse.json(
         { error: "No account found for that email." },

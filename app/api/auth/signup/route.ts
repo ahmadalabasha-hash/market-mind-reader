@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserByEmail as getUserByEmailDb, createUser, initDb } from "@/lib/db";
+import { getUserByEmail as getUserByEmailDb, getUserByEmailFallback, createUser, initDb } from "@/lib/db";
 import {
   createSessionCookie,
   createSessionToken,
@@ -55,7 +55,13 @@ export async function POST(req: Request) {
 
   try {
     await initDb();
-    const existing = await getUserByEmailDb(email);
+    let existing = await getUserByEmailDb(email);
+    
+    // Fallback to local-users.json if database is not available
+    if (!existing) {
+      existing = await getUserByEmailFallback(email);
+    }
+    
     if (existing) {
       return NextResponse.json(
         { error: "A user with that email already exists. Please sign in." },

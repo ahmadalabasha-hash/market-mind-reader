@@ -1,5 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { SubscriptionTier } from './auth-types';
+import fs from 'fs';
+import path from 'path';
 
 let sqlInstance: ReturnType<typeof neon> | null = null;
 
@@ -17,6 +19,52 @@ function getSql() {
 
 export function sql() {
   return getSql();
+}
+
+// Fallback to local-users.json when database is not available
+interface LocalUser {
+  fullName: string;
+  email: string;
+  passwordHash: string;
+  salt: string;
+  createdAt: string;
+  trialEndsAt?: string;
+  membershipStatus: string;
+}
+
+let localUsersCache: LocalUser[] | null = null;
+
+function getLocalUsers(): LocalUser[] {
+  if (localUsersCache !== null) return localUsersCache;
+  
+  try {
+    const filePath = path.join(process.cwd(), 'data', 'local-users.json');
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    const parsed = JSON.parse(fileContents) as LocalUser[];
+    localUsersCache = parsed || [];
+    return localUsersCache;
+  } catch (error) {
+    console.error('Error reading local-users.json:', error);
+    return [];
+  }
+}
+
+export async function getUserByEmailFallback(email: string): Promise<User | null> {
+  const localUsers = getLocalUsers();
+  const user = localUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+  
+  if (!user) return null;
+  
+  return {
+    fullName: user.fullName,
+    email: user.email,
+    passwordHash: user.passwordHash,
+    salt: user.salt,
+    createdAt: user.createdAt,
+    trialEndsAt: user.trialEndsAt,
+    membershipStatus: user.membershipStatus,
+    subscriptionTier: (user.membershipStatus === 'premium' ? 'pro' : 'trial') as SubscriptionTier,
+  };
 }
 
 export interface User {
