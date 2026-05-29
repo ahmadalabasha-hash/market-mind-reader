@@ -1,6 +1,5 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+import fs from 'fs';
+import path from 'path';
 
 interface ForecastData {
   historical: number[];
@@ -9,18 +8,19 @@ interface ForecastData {
   model: string;
 }
 
-export default function SimpleForecastPage() {
-  const [data, setData] = useState<ForecastData | null>(null);
-  const [loading, setLoading] = useState(true);
+async function getForecastData(): Promise<ForecastData | null> {
+  try {
+    const filePath = path.join(process.cwd(), 'timesfm', 'forecast_output.json');
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(fileContents);
+  } catch (error) {
+    return null;
+  }
+}
 
-  useEffect(() => {
-    fetch('/api/forecast')
-      .then(res => res.json())
-      .then(setData)
-      .finally(() => setLoading(false));
-  }, []);
+export default async function SimpleForecastPage() {
+  const data = await getForecastData();
 
-  if (loading) return <div className="p-8">Loading forecast...</div>;
   if (!data) return <div className="p-8">No data available</div>;
 
   return (

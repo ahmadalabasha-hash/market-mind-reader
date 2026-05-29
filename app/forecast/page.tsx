@@ -1,6 +1,5 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+import fs from 'fs';
+import path from 'path';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ForecastData {
@@ -10,45 +9,26 @@ interface ForecastData {
   model: string;
 }
 
-export default function ForecastPage() {
-  const [data, setData] = useState<ForecastData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+async function getForecastData(): Promise<ForecastData | null> {
+  try {
+    const filePath = path.join(process.cwd(), 'timesfm', 'forecast_output.json');
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(fileContents);
+  } catch (error) {
+    return null;
+  }
+}
 
-  useEffect(() => {
-    async function fetchForecast() {
-      try {
-        const response = await fetch('/api/forecast');
-        if (!response.ok) throw new Error('Failed to fetch forecast');
-        const forecastData = await response.json();
-        setData(forecastData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchForecast();
-  }, []);
+export default async function ForecastPage() {
+  const data = await getForecastData();
 
-  if (loading) {
+  if (!data) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="text-lg">Loading TimesFM Forecast...</div>
+        <div className="text-red-500 text-lg">No forecast data available</div>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-red-500 text-lg">Error: {error}</div>
-      </div>
-    );
-  }
-
-  if (!data) return null;
 
   // Prepare data for chart
   const chartData = [];
