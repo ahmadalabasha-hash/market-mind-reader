@@ -62,6 +62,16 @@ export default function ForecastsPage() {
   const stocks = [
     { symbol: "AAPL", name: "Apple Inc." },
     { symbol: "TSLA", name: "Tesla Inc." },
+    { symbol: "NVDA", name: "NVIDIA Corp." },
+    { symbol: "MSFT", name: "Microsoft Corp." },
+    { symbol: "GOOGL", name: "Alphabet Inc." },
+  ];
+
+  const indices = [
+    { symbol: "SPY", name: "S&P 500 ETF" },
+    { symbol: "QQQ", name: "NASDAQ 100 ETF" },
+    { symbol: "IWM", name: "Russell 2000 ETF" },
+    { symbol: "DIA", name: "Dow Jones ETF" },
   ];
 
   return (
@@ -82,6 +92,34 @@ export default function ForecastsPage() {
             {stocks.map((stock) => (
               <StockForecastCard key={stock.symbol} symbol={stock.symbol} name={stock.name} />
             ))}
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900">Market Index Forecasts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {indices.map((index) => (
+              <StockForecastCard key={index.symbol} symbol={index.symbol} name={index.name} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900">Sector Rotation Analysis</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <p className="text-gray-600">
+              Sector rotation forecasts help identify which sectors are expected to outperform in the coming weeks.
+            </p>
+            <div className="mt-4">
+              <a
+                href="/api/forecasts/sectors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                View Sector Data
+              </a>
+            </div>
           </div>
         </section>
 
