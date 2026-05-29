@@ -49,17 +49,22 @@ export async function POST(req: Request) {
     
     // Fallback to local-users.json if database is not available
     if (!user) {
+      console.log('Database user not found, trying fallback to local-users.json');
       user = await getUserByEmailFallback(email);
+      console.log('Fallback user found:', user ? 'YES' : 'NO');
     }
     
     if (!user) {
+      console.log('No user found for email:', email);
       return NextResponse.json(
         { error: "No account found for that email." },
         { status: 401 },
       );
     }
 
+    console.log('User found, verifying password for:', email);
     const isValid = await verifyPassword(password, user.salt, user.passwordHash);
+    console.log('Password valid:', isValid);
     if (!isValid) {
       return NextResponse.json(
         { error: "Email or password is incorrect." },

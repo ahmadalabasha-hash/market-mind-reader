@@ -39,9 +39,11 @@ function getLocalUsers(): LocalUser[] {
   
   try {
     const filePath = path.join(process.cwd(), 'data', 'local-users.json');
+    console.log('Reading local-users.json from:', filePath);
     const fileContents = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(fileContents) as LocalUser[];
     localUsersCache = parsed || [];
+    console.log('Loaded', localUsersCache.length, 'users from local-users.json');
     return localUsersCache;
   } catch (error) {
     console.error('Error reading local-users.json:', error);
