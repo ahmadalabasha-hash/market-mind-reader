@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StockForecastCard from "@/components/forecasts/StockForecastCard";
+import SectorRotationCard from "@/components/forecasts/SectorRotationCard";
 
 export default function ForecastsPage() {
   const router = useRouter();
@@ -104,22 +105,10 @@ export default function ForecastsPage() {
           </div>
         </section>
 
-        <section>
+        <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-6 text-gray-900">Sector Rotation Analysis</h2>
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-gray-600">
-              Sector rotation forecasts help identify which sectors are expected to outperform in the coming weeks.
-            </p>
-            <div className="mt-4">
-              <a
-                href="/api/forecasts/sectors"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-              >
-                View Sector Data
-              </a>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SectorRotationCard />
           </div>
         </section>
 
