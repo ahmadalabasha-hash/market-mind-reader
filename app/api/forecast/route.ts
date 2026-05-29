@@ -12,6 +12,7 @@ export async function GET() {
     
     return Response.json(forecastData);
   } catch (error) {
+    console.error('Forecast error:', error);
     return Response.json({ error: 'Forecast not available' }, { status: 500 });
   }
 }
