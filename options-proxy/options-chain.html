@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPY Options Chain - NASDAQ Style</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+        }
+        
+        .nasdaq-blue {
+            color: #0056b3;
+        }
+        
+        .nasdaq-blue-bg {
+            background-color: #0056b3;
+        }
+        
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        .options-table th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .option-row:hover {
+            background-color: #e8f4fd;
+        }
+        
+        .option-row.selected {
+            background-color: #0056b3;
+            color: white;
+        }
+        
+        .option-row.selected .text-gray-600 {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .option-row.selected .text-green-600 {
+            color: #4ade80;
+        }
+        
+        .option-row.selected .text-red-600 {
+            color: #f87171;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0056b3;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+                        </svg>
+                        <h1 class="text-2xl font-bold text-gray-900">Options Chain</h1>
+                    </div>
+                    <div class="h-6 w-px bg-gray-300"></div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900" id="symbolDisplay">SPY</h2>
+                        <p class="text-sm text-gray-500">SPDR S&P 500 ETF Trust</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-gray-900" id="currentPrice">$---.--</p>
+                        <p class="text-sm text-gray-500" id="priceChange">---</p>
+                        <p class="text-xs text-gray-400" id="extendedHoursPrice"></p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+                        <div class="w-2 h-2 rounded-full bg-green-500 pulse-dot" id="marketStatusDot"></div>
+                        <span class="text-sm font-medium text-green-600" id="marketStatus">Live</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Controls -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Symbol:</label>
+                    <select id="symbolSelect" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="SPY">SPY - S&P 500 ETF</option>
+                        <option value="QQQ">QQQ - Nasdaq 100 ETF</option>
+                        <option value="AAPL">AAPL - Apple</option>
+                        <option value="TSLA">TSLA - Tesla</option>
+                        <option value="GOOGL">GOOGL - Google</option>
+                        <option value="MSFT">MSFT - Microsoft</option>
+                        <option value="AMZN">AMZN - Amazon</option>
+                        <option value="NVDA">NVDA - NVIDIA</option>
+                        <option value="META">META - Meta</option>
+                        <option value="IWM">IWM - Russell 2000 ETF</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Expiration:</label>
+                    <select id="expirationSelect" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Refresh:</label>
+                    <select id="refreshInterval" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="2000">2 seconds</option>
+                        <option value="5000" selected>5 seconds</option>
+                        <option value="10000">10 seconds</option>
+                        <option value="30000">30 seconds</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 ml-auto">
+                    <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
+                    <span class="text-sm text-gray-500" id="lastUpdate">Last updated: --:--:--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Options Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Calls Table -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-semibold text-gray-900">Calls</h3>
+                </div>
+                <div class="table-container">
+                    <table class="w-full text-sm options-table">
+                        <thead>
+                            <tr class="bg-gray-100 border-b border-gray-200">
+                                <th class="px-3 py-2 text-left font-semibold text-gray-700">Strike</th>
+                                <th class="px-3 py-2 text-left font-semibold text-gray-700">Symbol</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Last</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Chg</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Bid</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Ask</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Volume</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Open Int</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">IV</th>
+                            </tr>
+                        </thead>
+                        <tbody id="callsTableBody">
+                            <tr>
+                                <td colspan="9" class="px-4 py-8 text-center text-gray-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Puts Table -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-semibold text-gray-900">Puts</h3>
+                </div>
+                <div class="table-container">
+                    <table class="w-full text-sm options-table">
+                        <thead>
+                            <tr class="bg-gray-100 border-b border-gray-200">
+                                <th class="px-3 py-2 text-left font-semibold text-gray-700">Strike</th>
+                                <th class="px-3 py-2 text-left font-semibold text-gray-700">Symbol</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Last</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Chg</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Bid</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Ask</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Volume</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">Open Int</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-700">IV</th>
+                            </tr>
+                        </thead>
+                        <tbody id="putsTableBody">
+                            <tr>
+                                <td colspan="9" class="px-4 py-8 text-center text-gray-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Option Detail Modal -->
+    <div id="optionModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl mx-4">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900" id="modalTitle">SPY Call Option</h2>
+                    <p class="text-sm text-gray-500" id="modalSubtitle">Strike $450 • Expires Jan 19, 2024</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-gray-100 rounded-lg transition">
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="overflow-y-auto max-h-[calc(90vh-80px)]">
+                <!-- Chart Section -->
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Price Chart</h3>
+                        <div class="flex gap-2">
+                            <button onclick="changeChartRange('1D')" class="chart-range-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100" data-range="1D">1D</button>
+                            <button onclick="changeChartRange('1W')" class="chart-range-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100" data-range="1W">1W</button>
+                            <button onclick="changeChartRange('1M')" class="chart-range-btn px-3 py-1 text-sm rounded border border-gray-300 bg-blue-600 text-white" data-range="1M">1M</button>
+                            <button onclick="changeChartRange('3M')" class="chart-range-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100" data-range="3M">3M</button>
+                            <button onclick="changeChartRange('1Y')" class="chart-range-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100" data-range="1Y">1Y</button>
+                        </div>
+                    </div>
+                    <div id="chartContainer" class="h-80 bg-gray-50 rounded-lg border border-gray-200"></div>
+                </div>
+
+                <!-- Option Details -->
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Option Details</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Last Price</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailLastPrice">$---.--</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Change</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailChange">---</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Bid / Ask</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailBidAsk">---</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Volume</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailVolume">---</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Open Interest</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailOpenInterest">---</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Implied Volatility</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailIV">---</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">In The Money</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailITM">---</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Last Trade</p>
+                            <p class="text-xl font-bold text-gray-900" id="detailLastTrade">---</p>
+                        </div>
+                    </div>
+
+                    <!-- Greeks -->
+                    <h3 class="text-lg font-semibold text-gray-900 mt-6 mb-4">Greeks</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Delta</p>
+                            <p class="text-xl font-bold text-blue-600" id="detailDelta">---</p>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Gamma</p>
+                            <p class="text-xl font-bold text-blue-600" id="detailGamma">---</p>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Theta</p>
+                            <p class="text-xl font-bold text-blue-600" id="detailTheta">---</p>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Vega</p>
+                            <p class="text-xl font-bold text-blue-600" id="detailVega">---</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const PROXY_URL = 'http://localhost:3001';
+        let SYMBOL = 'SPY';
+        let currentExpiration = '';
+        let refreshInterval = 5000;
+        let refreshTimer = null;
+        let selectedOption = null;
+        let chart = null;
+        let chartSeries = null;
+        let currentChartRange = '1M';
+
+        // Mock data for fallback
+        let mockData = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            setupEventListeners();
+            await loadExpirationDates();
+            startAutoRefresh();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('symbolSelect').addEventListener('change', (e) => {
+                SYMBOL = e.target.value;
+                document.getElementById('symbolDisplay').textContent = SYMBOL;
+                loadExpirationDates();
+            });
+
+            document.getElementById('expirationSelect').addEventListener('change', (e) => {
+                currentExpiration = e.target.value;
+                loadOptionsData();
+            });
+
+            document.getElementById('refreshInterval').addEventListener('change', (e) => {
+                refreshInterval = parseInt(e.target.value);
+                restartAutoRefresh();
+            });
+        }
+
+        async function loadExpirationDates() {
+            try {
+                const response = await fetch(`${PROXY_URL}/api/options/${SYMBOL}`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const data = await response.json();
+                mockData = data; // Store for fallback
+                
+                const select = document.getElementById('expirationSelect');
+                select.innerHTML = '';
+                
+                data.expirationDates.forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = formatDate(date);
+                    select.appendChild(option);
+                });
+                
+                currentExpiration = data.expirationDates[0];
+                updateCurrentPrice(data.currentPrice);
+                renderOptionsTable(data);
+            } catch (error) {
+                console.error('Error loading expirations:', error);
+                // Use mock data
+                generateMockData();
+            }
+        }
+
+        async function loadOptionsData() {
+            showLoading(true);
+            
+            try {
+                const url = currentExpiration 
+                    ? `${PROXY_URL}/api/options/${SYMBOL}?expiration=${currentExpiration}`
+                    : `${PROXY_URL}/api/options/${SYMBOL}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const data = await response.json();
+                mockData = data;
+                updateCurrentPrice(data);
+                updateMarketStatus(data);
+                renderOptionsTable(data);
+                updateLastUpdate();
+                
+                // Stop auto-refresh if market is closed
+                if (!data.isMarketOpen && !data.isExtendedHours) {
+                    stopAutoRefresh();
+                }
+            } catch (error) {
+                console.error('Error loading options:', error);
+                // Use mock data with random variations
+                if (mockData) {
+                    updateMockData();
+                    renderOptionsTable(mockData);
+                }
+            }
+            
+            showLoading(false);
+        }
+
+        function renderOptionsTable(data) {
+            renderCallsTable(data.calls);
+            renderPutsTable(data.puts);
+        }
+
+        function renderCallsTable(calls) {
+            const tbody = document.getElementById('callsTableBody');
+            tbody.innerHTML = '';
+            
+            if (!calls || calls.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">No data available</td></tr>';
+                return;
+            }
+            
+            calls.forEach(call => {
+                const row = document.createElement('tr');
+                row.className = 'option-row border-b border-gray-100 cursor-pointer transition';
+                row.dataset.contractSymbol = call.contractSymbol;
+                row.dataset.type = 'call';
+                
+                row.innerHTML = `
+                    <td class="px-3 py-2 font-semibold text-gray-900">$${call.strike.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-gray-600">${call.contractSymbol}</td>
+                    <td class="px-3 py-2 text-right font-medium text-gray-900">$${call.lastPrice.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right ${getChangeColor(call.change)}">${formatChange(call.change)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">$${call.bid.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">$${call.ask.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">${formatNumber(call.volume)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">${formatNumber(call.openInterest)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">${formatPercent(call.impliedVolatility)}</td>
+                `;
+                
+                row.addEventListener('click', () => openOptionDetail(call, 'call'));
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderPutsTable(puts) {
+            const tbody = document.getElementById('putsTableBody');
+            tbody.innerHTML = '';
+            
+            if (!puts || puts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">No data available</td></tr>';
+                return;
+            }
+            
+            puts.forEach(put => {
+                const row = document.createElement('tr');
+                row.className = 'option-row border-b border-gray-100 cursor-pointer transition';
+                row.dataset.contractSymbol = put.contractSymbol;
+                row.dataset.type = 'put';
+                
+                row.innerHTML = `
+                    <td class="px-3 py-2 font-semibold text-gray-900">$${put.strike.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-gray-600">${put.contractSymbol}</td>
+                    <td class="px-3 py-2 text-right font-medium text-gray-900">$${put.lastPrice.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right ${getChangeColor(put.change)}">${formatChange(put.change)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">$${put.bid.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">$${put.ask.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">${formatNumber(put.volume)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">${formatNumber(put.openInterest)}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">${formatPercent(put.impliedVolatility)}</td>
+                `;
+                
+                row.addEventListener('click', () => openOptionDetail(put, 'put'));
+                tbody.appendChild(row);
+            });
+        }
+
+        function openOptionDetail(option, type) {
+            selectedOption = { ...option, type };
+            
+            // Update modal content
+            document.getElementById('modalTitle').textContent = `${option.contractSymbol}`;
+            document.getElementById('modalSubtitle').textContent = 
+                `${type.charAt(0).toUpperCase() + type.slice(1)} $${option.strike.toFixed(2)} • Expires ${formatDate(option.expiration)}`;
+            
+            document.getElementById('detailLastPrice').textContent = `$${option.lastPrice.toFixed(2)}`;
+            document.getElementById('detailChange').textContent = formatChange(option.change);
+            document.getElementById('detailChange').className = `text-xl font-bold ${getChangeColor(option.change)}`;
+            document.getElementById('detailBidAsk').textContent = `$${option.bid.toFixed(2)} / $${option.ask.toFixed(2)}`;
+            document.getElementById('detailVolume').textContent = formatNumber(option.volume);
+            document.getElementById('detailOpenInterest').textContent = formatNumber(option.openInterest);
+            document.getElementById('detailIV').textContent = formatPercent(option.impliedVolatility);
+            document.getElementById('detailITM').textContent = option.inTheMoney ? 'Yes' : 'No';
+            document.getElementById('detailITM').className = `text-xl font-bold ${option.inTheMoney ? 'text-green-600' : 'text-red-600'}`;
+            document.getElementById('detailLastTrade').textContent = option.lastTradeDate ? formatDate(option.lastTradeDate) : '---';
+            
+            // Calculate and display Greeks
+            const greeks = calculateGreeks(option);
+            document.getElementById('detailDelta').textContent = greeks.delta.toFixed(4);
+            document.getElementById('detailGamma').textContent = greeks.gamma.toFixed(4);
+            document.getElementById('detailTheta').textContent = greeks.theta.toFixed(4);
+            document.getElementById('detailVega').textContent = greeks.vega.toFixed(4);
+            
+            // Show modal
+            document.getElementById('optionModal').classList.remove('hidden');
+            
+            // Load chart
+            loadOptionChart(option);
+        }
+
+        function closeModal() {
+            document.getElementById('optionModal').classList.add('hidden');
+            selectedOption = null;
+            if (chart) {
+                chart.remove();
+                chart = null;
+            }
+        }
+
+        async function loadOptionChart(option) {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '';
+            
+            try {
+                // Generate synthetic option price history (free APIs don't provide historical options data)
+                const syntheticData = generateSyntheticOptionChartData(option);
+                renderChart(syntheticData, option);
+            } catch (error) {
+                console.error('Error loading chart:', error);
+                const syntheticData = generateSyntheticOptionChartData(option);
+                renderChart(syntheticData, option);
+            }
+        }
+        
+        function generateSyntheticOptionChartData(option) {
+            const days = currentChartRange === '1D' ? 1 : 
+                         currentChartRange === '1W' ? 7 : 
+                         currentChartRange === '1M' ? 30 : 
+                         currentChartRange === '3M' ? 90 : 365;
+            
+            const data = [];
+            const basePrice = option.lastPrice || 20;
+            
+            for (let i = days; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                
+                // Simulate option price movement with time decay
+                const timeDecay = 1 - (i / days) * 0.3; // 30% time decay over period
+                const randomMove = (Math.random() - 0.5) * basePrice * 0.1;
+                const price = basePrice * timeDecay + randomMove;
+                
+                data.push({
+                    time: date.getTime() / 1000,
+                    value: Math.max(0.01, price),
+                });
+            }
+            
+            return data;
+        }
+
+        function renderChart(data, option) {
+            const container = document.getElementById('chartContainer');
+            
+            if (chart) {
+                chart.remove();
+            }
+            
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: 320,
+                layout: {
+                    background: { type: 'solid', color: '#f9fafb' },
+                    textColor: '#374151',
+                },
+                grid: {
+                    vertLines: { color: '#e5e7eb' },
+                    horzLines: { color: '#e5e7eb' },
+                },
+                timeScale: {
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+            
+            chartSeries = chart.addAreaSeries({
+                lineColor: '#0056b3',
+                topColor: 'rgba(0, 86, 179, 0.4)',
+                bottomColor: 'rgba(0, 86, 179, 0.0)',
+            });
+            
+            chartSeries.setData(data);
+            chart.timeScale().fitContent();
+            
+            // Handle resize
+            window.addEventListener('resize', () => {
+                if (chart) {
+                    chart.applyOptions({ width: container.clientWidth });
+                }
+            });
+        }
+
+        function changeChartRange(range) {
+            currentChartRange = range;
+            
+            // Update button styles
+            document.querySelectorAll('.chart-range-btn').forEach(btn => {
+                if (btn.dataset.range === range) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('hover:bg-gray-100');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('hover:bg-gray-100');
+                }
+            });
+            
+            // Reload chart
+            if (selectedOption) {
+                loadOptionChart(selectedOption);
+            }
+        }
+
+        function calculateGreeks(option) {
+            // Simplified Black-Scholes approximation
+            const S = mockData?.currentPrice || 450;
+            const K = option.strike;
+            const T = Math.max((new Date(option.expiration) - new Date()) / (365 * 24 * 60 * 60 * 1000), 0.01);
+            const r = 0.05;
+            const sigma = option.impliedVolatility || 0.2;
+            
+            const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
+            const d2 = d1 - sigma * Math.sqrt(T);
+            
+            const delta = option.contractType === 'CALL' ? normalCDF(d1) : normalCDF(d1) - 1;
+            const gamma = normalPDF(d1) / (S * sigma * Math.sqrt(T));
+            const theta = (-S * normalPDF(d1) * sigma) / (2 * Math.sqrt(T)) - r * K * Math.exp(-r * T) * normalCDF(d2);
+            const vega = S * normalPDF(d1) * Math.sqrt(T) / 100;
+            
+            return { delta, gamma, theta, vega };
+        }
+
+        function normalCDF(x) {
+            const t = 1 / (1 + 0.2316419 * Math.abs(x));
+            const d = 0.3989423 * Math.exp(-x * x / 2);
+            const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+            return x > 0 ? 1 - p : p;
+        }
+
+        function normalPDF(x) {
+            return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+        }
+
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(() => {
+                loadOptionsData();
+            }, refreshInterval);
+        }
+
+        function stopAutoRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+        }
+
+        function restartAutoRefresh() {
+            startAutoRefresh();
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = `Last updated: ${now.toLocaleTimeString()}`;
+        }
+
+        function updateCurrentPrice(data) {
+            const price = data.currentPrice || data.regularMarketPrice;
+            const change = data.change || data.regularMarketChange;
+            const percentChange = data.percentChange || data.regularMarketChangePercent;
+            
+            document.getElementById('currentPrice').textContent = `$${price.toFixed(2)}`;
+            
+            if (change !== undefined) {
+                const sign = change >= 0 ? '+' : '';
+                document.getElementById('priceChange').textContent = `${sign}${change.toFixed(2)} (${sign}${percentChange?.toFixed(2) || 0}%)`;
+                document.getElementById('priceChange').className = `text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`;
+            }
+            
+            // Show extended hours price if available
+            if (data.preMarketPrice) {
+                document.getElementById('extendedHoursPrice').textContent = `Pre-market: $${data.preMarketPrice.toFixed(2)}`;
+            } else if (data.afterMarketPrice) {
+                document.getElementById('extendedHoursPrice').textContent = `After-hours: $${data.afterMarketPrice.toFixed(2)}`;
+            } else {
+                document.getElementById('extendedHoursPrice').textContent = '';
+            }
+        }
+        
+        function updateMarketStatus(data) {
+            const dot = document.getElementById('marketStatusDot');
+            const status = document.getElementById('marketStatus');
+            
+            if (data.isMarketOpen) {
+                dot.className = 'w-2 h-2 rounded-full bg-green-500 pulse-dot';
+                status.textContent = 'Market Open';
+                status.className = 'text-sm font-medium text-green-600';
+            } else if (data.isExtendedHours) {
+                dot.className = 'w-2 h-2 rounded-full bg-yellow-500 pulse-dot';
+                status.textContent = 'Extended Hours';
+                status.className = 'text-sm font-medium text-yellow-600';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-gray-400';
+                status.textContent = 'Market Closed';
+                status.className = 'text-sm font-medium text-gray-500';
+            }
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toLocaleString();
+        }
+
+        function formatChange(change) {
+            if (change === null || change === undefined) return '---';
+            const sign = change >= 0 ? '+' : '';
+            return `${sign}${change.toFixed(2)}`;
+        }
+
+        function formatPercent(value) {
+            if (value === null || value === undefined) return '---';
+            return `${(value * 100).toFixed(1)}%`;
+        }
+
+        function getChangeColor(change) {
+            if (change === null || change === undefined) return 'text-gray-600';
+            return change >= 0 ? 'text-green-600' : 'text-red-600';
+        }
+
+        // Mock data generation for fallback
+        function generateMockData() {
+            const currentPrice = 450 + Math.random() * 10;
+            const expirationDates = [];
+            const today = new Date();
+            
+            for (let i = 1; i <= 12; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() + i * 7);
+                expirationDates.push(date.toISOString().split('T')[0]);
+            }
+            
+            const calls = [];
+            const puts = [];
+            
+            for (let strike = 430; strike <= 470; strike += 2.5) {
+                const call = generateMockOption(strike, 'CALL', currentPrice, expirationDates[0]);
+                const put = generateMockOption(strike, 'PUT', currentPrice, expirationDates[0]);
+                calls.push(call);
+                puts.push(put);
+            }
+            
+            mockData = {
+                symbol: SYMBOL,
+                currentPrice,
+                expirationDates,
+                calls,
+                puts,
+            };
+            
+            const select = document.getElementById('expirationSelect');
+            select.innerHTML = '';
+            expirationDates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = formatDate(date);
+                select.appendChild(option);
+            });
+            
+            currentExpiration = expirationDates[0];
+            updateCurrentPrice(currentPrice);
+            renderOptionsTable(mockData);
+        }
+
+        function generateMockOption(strike, type, currentPrice, expiration) {
+            const inTheMoney = type === 'CALL' ? currentPrice > strike : currentPrice < strike;
+            const intrinsicValue = inTheMoney ? Math.abs(currentPrice - strike) : 0;
+            const timeValue = Math.random() * 5 + 1;
+            const lastPrice = Math.max(0.01, intrinsicValue + timeValue);
+            
+            return {
+                contractSymbol: `${SYMBOL}${new Date(expiration).getFullYear().toString().slice(-2)}${(new Date(expiration).getMonth() + 1).toString().padStart(2, '0')}${new Date(expiration).getDate().toString().padStart(2, '0')}${type === 'CALL' ? 'C' : 'P'}${(strike * 1000).toFixed(0).padStart(8, '0')}`,
+                strike,
+                lastPrice,
+                change: (Math.random() - 0.5) * 2,
+                percentChange: (Math.random() - 0.5) * 10,
+                bid: lastPrice * 0.95,
+                ask: lastPrice * 1.05,
+                volume: Math.floor(Math.random() * 10000),
+                openInterest: Math.floor(Math.random() * 50000),
+                impliedVolatility: 0.15 + Math.random() * 0.2,
+                inTheMoney,
+                expiration,
+                lastTradeDate: new Date().toISOString(),
+            };
+        }
+
+        function updateMockData() {
+            if (!mockData) return;
+            
+            // Update current price with small random variation
+            mockData.currentPrice += (Math.random() - 0.5) * 0.5;
+            
+            // Update option prices
+            [...mockData.calls, ...mockData.puts].forEach(option => {
+                option.lastPrice += (Math.random() - 0.5) * 0.1;
+                option.lastPrice = Math.max(0.01, option.lastPrice);
+                option.change = (Math.random() - 0.5) * 0.5;
+                option.bid = option.lastPrice * 0.95;
+                option.ask = option.lastPrice * 1.05;
+                option.volume += Math.floor(Math.random() * 100);
+            });
+            
+            updateCurrentPrice(mockData.currentPrice);
+        }
+
+        function generateSyntheticChartData(option) {
+            const data = [];
+            const days = currentChartRange === '1D' ? 1 : 
+                         currentChartRange === '1W' ? 7 : 
+                         currentChartRange === '1M' ? 30 : 
+                         currentChartRange === '3M' ? 90 : 365;
+            
+            for (let i = days; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                
+                const basePrice = option.lastPrice;
+                const variation = (Math.random() - 0.5) * basePrice * 0.1;
+                
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    open: basePrice + variation,
+                    high: basePrice + variation + Math.random() * basePrice * 0.05,
+                    low: basePrice + variation - Math.random() * basePrice * 0.05,
+                    close: basePrice + variation + (Math.random() - 0.5) * basePrice * 0.02,
+                    volume: Math.floor(Math.random() * 10000),
+                });
+            }
+            
+            return data;
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('optionModal').addEventListener('click', (e) => {
+            if (e.target.id === 'optionModal') closeModal();
+        });
+    </script>
+</body>
+</html>

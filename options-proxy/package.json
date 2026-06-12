@@ -1,0 +1,18 @@
+{
+  "name": "options-proxy",
+  "version": "1.0.0",
+  "description": "Proxy server for Yahoo Finance options data",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "yahoo-finance2": "^2.11.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

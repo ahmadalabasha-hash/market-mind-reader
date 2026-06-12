@@ -9,28 +9,21 @@ import {
   type MarketContext,
   type SheetGammaLevelRow,
 } from "@/lib/gamma-levels";
-import { fetchLiveCandles, POPULAR_SYMBOLS, type Candle } from "@/lib/candle-fetcher";
-
-async function fetchSheetGammaLevels(): Promise<Record<string, SheetGammaLevelRow>> {
-  const response = await fetch("/api/gamma-sheet");
-  if (!response.ok) {
-    throw new Error(`Gamma sheet fetch failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data?.data ?? {};
-}
+import { fetchCandlesFromYahoo, type Candle } from "@/lib/candle-fetcher";
+import { fetchGammaSheetLevels } from "@/lib/gamma-sheet";
 
 interface GammaLevelsOverlayProps {
   theme?: "classic" | "caffeinated" | "midnight" | "intraday";
   symbol?: string;
   onSymbolChange?: (symbol: string) => void;
+  timeframe?: string;
 }
 
 export function GammaLevelsOverlay({
   theme = "midnight",
   symbol: symbolProp,
   onSymbolChange,
+  timeframe: timeframeProp = "60",
 }: GammaLevelsOverlayProps) {
   const [gammaLevels, setGammaLevels] = useState<GammaLevels | null>(null);
   const [marketContext, setMarketContext] = useState<MarketContext | null>(null);
@@ -41,10 +34,12 @@ export function GammaLevelsOverlay({
   const [inputSymbol, setInputSymbol] = useState(() =>
     symbolProp ? cleanSymbol(symbolProp) : "QQQ",
   );
+  const [timeframe, setTimeframe] = useState(timeframeProp);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [candles, setCandles] = useState<Candle[]>([]);
+  const [availableSymbols, setAvailableSymbols] = useState<Array<{ symbol: string; name: string }>>([]);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +54,23 @@ export function GammaLevelsOverlay({
     }
   }, [symbolProp, symbol]);
 
+  // Load available symbols from gamma sheet
+  useEffect(() => {
+    const loadSymbols = async () => {
+      try {
+        const sheetLevels = await fetchGammaSheetLevels();
+        const symbols = Object.keys(sheetLevels).map(symbol => ({
+          symbol,
+          name: symbol // Could enhance with names if available
+        }));
+        setAvailableSymbols(symbols);
+      } catch (error) {
+        console.error('Failed to load gamma symbols:', error);
+      }
+    };
+    loadSymbols();
+  }, []);
+
   useEffect(() => {
     const loadCandles = async () => {
       if (!symbol) {
@@ -72,7 +84,7 @@ export function GammaLevelsOverlay({
       setMarketContext(null);
 
       try {
-        const fetchedCandles = await fetchLiveCandles(symbol, "60");
+        const fetchedCandles = await fetchCandlesFromYahoo(symbol, timeframe);
         setCandles(fetchedCandles);
 
         if (fetchedCandles.length === 0) {
@@ -80,20 +92,20 @@ export function GammaLevelsOverlay({
         }
 
         const latestClose = fetchedCandles[fetchedCandles.length - 1].close;
+        console.log(`${symbol} latest close from candles:`, latestClose);
+        console.log(`${symbol} candles count:`, fetchedCandles.length);
+        console.log(`${symbol} candle range:`, {
+          high: Math.max(...fetchedCandles.map((c: Candle) => c.high)),
+          low: Math.min(...fetchedCandles.map((c: Candle) => c.low))
+        });
 
-        let sheetOverride: SheetGammaLevelRow | undefined;
-        try {
-          const sheetLevels = await fetchSheetGammaLevels();
-          sheetOverride = sheetLevels[symbol];
-        } catch (sheetError) {
-          console.warn("Failed to load gamma sheet override:", sheetError);
-        }
-
+        // Calculate gamma levels from live data only (no sheet overrides)
         const levels = calculateGammaLevels(
           fetchedCandles,
           latestClose,
-          sheetOverride,
+          undefined, // No sheet override - calculate from live data
         );
+        console.log(`${symbol} calculated gamma levels:`, levels);
         setGammaLevels(levels);
 
         const closes = fetchedCandles.map((c) => c.close);
@@ -102,11 +114,14 @@ export function GammaLevelsOverlay({
         const context = calculateMarketContext(fetchedCandles, volatility);
         setMarketContext(context);
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to fetch candle data",
-        );
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch candle data";
+        // If timeframe change fails, fallback to 60m
+        if (timeframe !== "60") {
+          console.warn(`Failed to load ${timeframe}m data for ${symbol}, falling back to 60m:`, errorMessage);
+          setTimeframe("60");
+          return;
+        }
+        setError(errorMessage);
         console.error(err);
       } finally {
         setLoading(false);
@@ -118,7 +133,7 @@ export function GammaLevelsOverlay({
     // Refresh data every minute
     const interval = setInterval(loadCandles, 60000);
     return () => clearInterval(interval);
-  }, [symbol]);
+  }, [symbol, timeframe]);
 
   const handleSymbolChange = (newSymbol: string) => {
     const normalized = cleanSymbol(newSymbol);
@@ -214,6 +229,25 @@ export function GammaLevelsOverlay({
               Select Symbol
             </p>
             <form onSubmit={handleManualSubmit} className="space-y-2">
+              {/* Timeframe selector */}
+              <div className="flex gap-1">
+                {['1', '5', '15', '60', '240', 'D'].map(tf => (
+                  <button
+                    key={tf}
+                    type="button"
+                    onClick={() => setTimeframe(tf)}
+                    className={`flex-1 rounded px-2 py-1 text-xs font-medium transition ${
+                      timeframe === tf
+                        ? 'bg-blue-600 text-white'
+                        : theme === "intraday"
+                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    }`}
+                  >
+                    {tf === '1' ? '1m' : tf === '5' ? '5m' : tf === '15' ? '15m' : tf === '60' ? '1h' : tf === '240' ? '4h' : '1D'}
+                  </button>
+                ))}
+              </div>
               <div className="relative">
                 <input
                   type="text"
@@ -229,25 +263,31 @@ export function GammaLevelsOverlay({
                 />
                 {showDropdown && (
                   <div className={`absolute top-full left-0 right-0 mt-1 rounded-lg ${panelBgColor} border ${panelBorderColor} shadow-2xl z-50 max-h-48 overflow-y-auto`}>
-                    {POPULAR_SYMBOLS.map((opt) => (
-                      <button
-                        key={opt.symbol}
-                        type="button"
-                        onClick={() => handleSymbolChange(opt.symbol)}
-                        className={`w-full text-left px-3 py-2 text-xs hover:${theme === "intraday" ? "bg-blue-100" : "bg-zinc-700"} transition ${
-                          symbol === opt.symbol
-                            ? theme === "intraday"
-                              ? "bg-blue-200"
-                              : "bg-zinc-700"
-                            : ""
-                        }`}
-                      >
-                        <span className="font-semibold">{opt.symbol}</span>
-                        <span className={`text-xs ml-2 ${theme === "intraday" ? "text-gray-600" : "text-zinc-400"}`}>
-                          {opt.name}
-                        </span>
-                      </button>
-                    ))}
+                    {availableSymbols.length > 0 ? (
+                      availableSymbols.map((opt) => (
+                        <button
+                          key={opt.symbol}
+                          type="button"
+                          onClick={() => handleSymbolChange(opt.symbol)}
+                          className={`w-full text-left px-3 py-2 text-xs hover:${theme === "intraday" ? "bg-blue-100" : "bg-zinc-700"} transition ${
+                            symbol === opt.symbol
+                              ? theme === "intraday"
+                                ? "bg-blue-200"
+                                : "bg-zinc-700"
+                              : ""
+                          }`}
+                        >
+                          <span className="font-semibold">{opt.symbol}</span>
+                          <span className={`text-xs ml-2 ${theme === "intraday" ? "text-gray-600" : "text-zinc-400"}`}>
+                            {opt.name}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className={`px-3 py-2 text-xs ${theme === "intraday" ? "text-gray-600" : "text-zinc-400"}`}>
+                        Loading symbols...
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -1,0 +1,33 @@
+# Advanced ML Libraries for Ensemble and Transformer-based Forecasting
+# Install with: pip install -r advanced_requirements.txt
+
+# Deep Learning Frameworks
+torch>=2.0.0
+tensorflow>=2.13.0
+
+# Time Series Specific Libraries
+darts>=0.25.0
+pytorch-forecasting>=1.0.0
+sktime>=0.14.0
+
+# Gradient Boosting
+xgboost>=2.0.0
+lightgbm>=4.0.0
+catboost>=1.2.0
+
+# Traditional ML
+scikit-learn>=1.3.0
+statsmodels>=0.14.0
+
+# Data Processing
+pandas>=2.0.0
+yfinance>=0.2.0
+
+# Utilities
+joblib>=1.3.0
+tqdm>=4.65.0
+
+# Existing TimesFM dependencies
+numpy>=1.26.4
+huggingface_hub[cli]>=0.23.0
+safetensors>=0.5.3

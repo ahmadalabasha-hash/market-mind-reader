@@ -13,7 +13,11 @@ interface UltimateSectionProps {
  * Ultimate Plan Section - Uses existing gamma levels and TradingView components
  */
 export function UltimateSection({ userTier, isSuperAdmin = false }: UltimateSectionProps) {
-  const [chartSymbol, setChartSymbol] = useState("SPX");
+  const [chartSymbol, setChartSymbol] = useState("SPY");
+
+  const handleSymbolChange = (newSymbol: string) => {
+    setChartSymbol(newSymbol);
+  };
 
   return (
     <div className="space-y-6">
@@ -29,8 +33,8 @@ export function UltimateSection({ userTier, isSuperAdmin = false }: UltimateSect
         </div>
       </div>
 
-      {/* Gamma Levels Overlay */}
-      <GammaLevelsOverlay theme="midnight" symbol={chartSymbol} onSymbolChange={setChartSymbol} />
+      {/* Gamma Levels Overlay - Primary symbol control */}
+      <GammaLevelsOverlay theme="midnight" symbol={chartSymbol} onSymbolChange={handleSymbolChange} />
 
       {/* TradingView Advanced Chart */}
       <div className="rounded-2xl border border-zinc-700/50 bg-zinc-900/50 overflow-hidden">
@@ -48,7 +52,7 @@ export function UltimateSection({ userTier, isSuperAdmin = false }: UltimateSect
           </div>
         </div>
         <div className="h-[600px]">
-          <AdvancedChart symbol={chartSymbol} onSymbolChange={setChartSymbol} />
+          <AdvancedChart symbol={chartSymbol} onSymbolChange={handleSymbolChange} />
         </div>
         <div className="px-6 py-3 border-t border-zinc-700/50 bg-zinc-900/50">
           <p className="text-xs text-zinc-500">
@@ -113,7 +117,7 @@ export function UltimateSection({ userTier, isSuperAdmin = false }: UltimateSect
             </div>
           </div>
           <button 
-            onClick={() => window.location.href = '/options-master'}
+            onClick={() => window.location.href = '/options-master/history'}
             className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-zinc-950 font-semibold hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg shadow-purple-500/20"
           >
             Open Options Master

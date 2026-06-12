@@ -9,6 +9,7 @@ import { BasicSignalsCard } from "@/components/subscription/BasicSignalsCard";
 import { ProSignalsCard } from "@/components/subscription/ProSignalsCard";
 import { UltimateSection } from "@/components/subscription/UltimateSection";
 import { CurrentPlanBadge } from "@/components/subscription/TieredSignals";
+import { TradingViewIdeasSection } from "@/components/tradingview-ideas/TradingViewIdeasSection";
 
 export default async function UltimatePage() {
   const cookieStore = await cookies();
@@ -65,6 +66,13 @@ export default async function UltimatePage() {
 
           {/* Ultimate Section - Gamma Levels + TradingView Chart */}
           <UltimateSection userTier={userTier} isSuperAdmin={isSuperAdmin} />
+
+          {/* TradingView Ideas Section - Ultimate Only */}
+          <div className="mt-8">
+            <div className="rounded-xl border border-zinc-700 bg-zinc-800/30 p-6">
+              <TradingViewIdeasSection userTier={userTier} isSuperAdmin={isSuperAdmin} />
+            </div>
+          </div>
 
           {/* AI Forecast Section - Ultimate Only */}
           <div className="mt-8">

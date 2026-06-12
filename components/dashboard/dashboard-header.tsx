@@ -4,6 +4,7 @@ import { LogoutButton } from "./logout-button";
 const nav = [
   { id: "charts", label: "Charts", href: "#charts" },
   { id: "signals", label: "Signals", href: "/signals" },
+  { id: "day-trading", label: "Day Trading", href: "/day-trading" },
   { id: "options", label: "IV Ranking", href: "/options" },
   { id: "gex", label: "GEX Deep Knowledge", href: "/gex-levels-deep-knowledge" },
 ];

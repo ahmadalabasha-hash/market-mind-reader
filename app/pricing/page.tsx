@@ -1,4 +1,9 @@
 import Link from "next/link";
+import dynamic from 'next/dynamic';
+
+const HeroVisualization = dynamic(() => import('@/components/3d/HeroVisualization'));
+const GammaVisualization = dynamic(() => import('@/components/3d/GammaVisualization'));
+const SignalFlowVisualization = dynamic(() => import('@/components/3d/SignalFlowVisualization'));
 
 export default function PricingPage() {
   return (
@@ -15,46 +20,62 @@ export default function PricingPage() {
       </div>
 
       {/* Hero Section */}
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">
-            Choose Your Plan
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg text-zinc-400">
-            Institutional-grade market intelligence and trading signals. Select the plan that fits your trading needs.
-          </p>
-        </div>
-
-        {/* Pricing Cards */}
-        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Basic Plan */}
-          <div className="relative rounded-2xl border border-[var(--border)] bg-[var(--surface)]/60 p-8 transition-all duration-300 hover:border-[var(--accent)] hover:shadow-2xl hover:shadow-[var(--accent)]/10">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-zinc-100">Basic Plan</h3>
-              <p className="mt-2 text-4xl font-bold text-zinc-100">
-                $400<span className="text-lg font-normal text-zinc-400">/month</span>
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-orange-500/10"></div>
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="text-center lg:text-left">
+              <h2 className="text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">
+                Choose Your Edge.
+              </h2>
+              <p className="mt-4 max-w-2xl text-lg text-zinc-400">
+                Institutional intelligence. Select your tier.
               </p>
             </div>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                All signals for: SPY, SPX, NQ, ES, QQQ
-              </li>
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Real-time market index alerts
-              </li>
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Entry/exit signals for major indices
-              </li>
-            </ul>
+            <div className="hidden lg:block">
+              <HeroVisualization />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        {/* Pricing Cards */}
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Basic Plan */}
+          <div className="relative rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-elevated)] p-8 transition-all duration-300 hover:border-[var(--accent)] hover:shadow-2xl hover:shadow-[var(--accent)]/10 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5"></div>
+            <div className="relative">
+              <div className="h-32 mb-4">
+                <GammaVisualization />
+              </div>
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-zinc-100">Basic</h3>
+                <p className="mt-2 text-4xl font-bold text-zinc-100">
+                  $400<span className="text-lg font-normal text-zinc-400">/mo</span>
+                </p>
+              </div>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  SPY, SPX, NQ, ES, QQQ signals
+                </li>
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Real-time index alerts
+                </li>
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Entry/exit signals
+                </li>
+              </ul>
+            </div>
             <div className="mt-8 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <a
@@ -84,38 +105,44 @@ export default function PricingPage() {
           </div>
 
           {/* Pro Plan - Most Popular */}
-          <div className="relative rounded-2xl border-2 border-[var(--accent)] bg-[var(--surface)]/60 p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-[var(--accent)]/20">
+          <div className="relative rounded-2xl border-2 border-[var(--accent)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-elevated)] p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-[var(--accent)]/20 overflow-hidden">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="rounded-full bg-[var(--accent)] px-4 py-1 text-xs font-semibold text-black">
                 Most Popular
               </span>
             </div>
-            <div className="mb-6 pt-2">
-              <h3 className="text-xl font-semibold text-zinc-100">Pro Plan</h3>
-              <p className="mt-2 text-4xl font-bold text-zinc-100">
-                $800<span className="text-lg font-normal text-zinc-400">/month</span>
-              </p>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5"></div>
+            <div className="relative">
+              <div className="h-32 mb-4">
+                <SignalFlowVisualization />
+              </div>
+              <div className="mb-6 pt-2">
+                <h3 className="text-xl font-semibold text-zinc-100">Pro</h3>
+                <p className="mt-2 text-4xl font-bold text-zinc-100">
+                  $800<span className="text-lg font-normal text-zinc-400">/mo</span>
+                </p>
+              </div>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Everything in Basic
+                </li>
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Plus stock signals
+                </li>
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Individual stock alerts
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Everything from Market Indices Signals
-              </li>
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                PLUS signals for most traded stocks
-              </li>
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Individual stock alerts and recommendations
-              </li>
-            </ul>
             <div className="mt-8 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <a
@@ -145,39 +172,45 @@ export default function PricingPage() {
           </div>
 
           {/* Enterprise Plan */}
-          <div className="relative rounded-2xl border border-[var(--border)] bg-[var(--surface)]/60 p-8 transition-all duration-300 hover:border-[var(--accent)] hover:shadow-2xl hover:shadow-[var(--accent)]/10">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-zinc-100">Enterprise - Custom & Options</h3>
-              <p className="mt-2 text-4xl font-bold text-zinc-100">
-                $1,500<span className="text-lg font-normal text-zinc-400">/month</span>
-              </p>
+          <div className="relative rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-elevated)] p-8 transition-all duration-300 hover:border-[var(--accent)] hover:shadow-2xl hover:shadow-[var(--accent)]/10 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5"></div>
+            <div className="relative">
+              <div className="h-32 mb-4">
+                <HeroVisualization />
+              </div>
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-zinc-100">Enterprise</h3>
+                <p className="mt-2 text-4xl font-bold text-zinc-100">
+                  $1,500<span className="text-lg font-normal text-zinc-400">/mo</span>
+                </p>
+              </div>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Everything in Pro
+                </li>
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Custom TradingView integration
+                </li>
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Options selection
+                </li>
+                <li className="flex items-start gap-3 text-sm text-zinc-300">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Gamma flip alerts
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Everything from Market Indices & Stocks plans
-              </li>
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                PLUS custom TradingView indicator integration
-              </li>
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                PLUS options selection based on signals
-              </li>
-              <li className="flex items-start gap-3 text-sm text-zinc-300">
-                <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--bull)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                PLUS Gamma options flip strategy alerts
-              </li>
-            </ul>
             <div className="mt-8 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <a
@@ -217,34 +250,34 @@ export default function PricingPage() {
         </div>
 
         {/* Contact Support Section */}
-        <div className="mt-16 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/60 p-8 text-center">
-          <h3 className="text-xl font-semibold text-zinc-100">Need Help Choosing?</h3>
-          <p className="mt-2 text-sm text-zinc-400">
-            Contact our support team for personalized recommendations or custom enterprise solutions.
-          </p>
-          <a
-            href="mailto:stureplanet307@gmail.com?subject=Pricing Plan Inquiry"
-            className="mt-6 inline-block rounded-xl bg-[var(--accent)] px-8 py-3 text-sm font-semibold text-black transition-colors duration-200 hover:bg-[var(--accent-muted)]"
-          >
-            Contact Support
-          </a>
+        <div className="mt-16 rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-elevated)] p-8 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5"></div>
+          <div className="relative">
+            <h3 className="text-xl font-semibold text-zinc-100">Need Help?</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Contact for custom solutions.
+            </p>
+            <a
+              href="mailto:stureplanet307@gmail.com?subject=Pricing Plan Inquiry"
+              className="mt-6 inline-block rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-8 py-3 text-sm font-semibold text-black transition-colors duration-200 hover:from-amber-500 hover:to-orange-600 shadow-xl shadow-amber-500/30"
+            >
+              Contact Support
+            </a>
+          </div>
         </div>
 
         {/* Payment Information */}
-        <div className="mt-12 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/60 p-6">
-          <h4 className="text-sm font-semibold text-zinc-100">Payment Information</h4>
-          <p className="mt-2 text-xs text-zinc-400">
-            Payments are processed securely through PayPal or Revolut. You will be redirected to complete your subscription.
-          </p>
-          <div className="mt-4 space-y-1 text-xs text-zinc-500">
-            <p>PayPal.Me: <a href="https://paypal.me/marketsignals" target="_blank" rel="noopener noreferrer" className="text-[#0070ba] hover:underline">paypal.me/marketsignals</a></p>
-            <p>Revolut: <a href="https://revolut.me/oweisxya2" target="_blank" rel="noopener noreferrer" className="text-[#007cba] hover:underline">revolut.me/oweisxya2</a></p>
-            <p>Email: <a href="mailto:stureplanet307@gmail.com" className="text-[#0070ba] hover:underline">stureplanet307@gmail.com</a></p>
-          </div>
-          <div className="mt-4 rounded-xl bg-[var(--surface-elevated)] p-3">
-            <p className="text-xs text-zinc-300">
-              💳 Revolut payments: Non-Revolut users may need to create a free account for payments over ~$320
+        <div className="mt-12 rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-elevated)] p-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5"></div>
+          <div className="relative">
+            <h4 className="text-sm font-semibold text-zinc-100">Payment</h4>
+            <p className="mt-2 text-xs text-zinc-400">
+              Secure payments via PayPal or Revolut.
             </p>
+            <div className="mt-4 space-y-1 text-xs text-zinc-500">
+              <p>PayPal: <a href="https://paypal.me/marketsignals" target="_blank" rel="noopener noreferrer" className="text-[#0070ba] hover:underline">paypal.me/marketsignals</a></p>
+              <p>Revolut: <a href="https://revolut.me/oweisxya2" target="_blank" rel="noopener noreferrer" className="text-[#007cba] hover:underline">revolut.me/oweisxya2</a></p>
+            </div>
           </div>
         </div>
       </div>

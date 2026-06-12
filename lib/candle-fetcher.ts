@@ -97,24 +97,35 @@ export async function fetchCandlesFromYahoo(
 ): Promise<Candle[]> {
   const cleanedSymbol = normalizeSymbol(symbol);
   const interval = getYahooInterval(resolution);
-  const range = "5d";
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
-    cleanedSymbol,
-  )}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(
-    range,
-  )}&includePrePost=false`;
+  const range = "3mo"; // Get 3 months of data for better gamma calculations
+
+  // Use server-side API to avoid CORS
+  const url = `/api/yahoo-finance/${encodeURIComponent(cleanedSymbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`;
 
   const res = await fetch(url);
 
   if (!res.ok) {
-    throw new Error(`Yahoo Finance error: ${res.status}`);
+    throw new Error(`Yahoo Finance API error: ${res.status}`);
   }
 
   const data = await res.json();
+
+  if (data.error) {
+    throw new Error(data.error);
+  }
+
   const result = data?.chart?.result?.[0];
 
-  if (!result || !Array.isArray(result.timestamp) || !result.indicators?.quote?.[0]) {
-    throw new Error("Invalid Yahoo Finance response");
+  if (!result) {
+    throw new Error("No chart data found for this symbol");
+  }
+
+  if (!Array.isArray(result.timestamp)) {
+    throw new Error("Invalid timestamp data");
+  }
+
+  if (!result.indicators?.quote?.[0]) {
+    throw new Error("No quote data found");
   }
 
   const timestamps = result.timestamp as number[];
@@ -149,7 +160,11 @@ export async function fetchCandlesFromYahoo(
     })
     .filter((c): c is Candle => c !== null);
 
-  return candles.slice(-5);
+  if (candles.length === 0) {
+    throw new Error("No valid candle data available");
+  }
+
+  return candles; // Return all candles for better gamma calculations
 }
 
 /**

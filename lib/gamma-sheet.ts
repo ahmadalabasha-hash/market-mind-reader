@@ -113,5 +113,10 @@ export async function fetchGammaSheetLevels(): Promise<Record<string, SheetGamma
     };
   }
 
+  console.log(`Parsed ${Object.keys(result).length} symbols from gamma sheet`);
+  if (result['AAPL']) {
+    console.log('AAPL data from sheet:', result['AAPL']);
+  }
+
   return result;
 }

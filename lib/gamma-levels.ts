@@ -93,30 +93,46 @@ export function calculateGammaLevels(
   const atr = highLow.reduce((a, b) => a + b, 0) / highLow.length;
   const volatility = atr / current.close;
 
-  // Estimate options market implied volatility (simplified)
-  const ivLevel = Math.min(volatility * 150, 80);
+  // Calculate VWAP (Volume Weighted Average Price)
+  const typicalPrices = candles.map(c => (c.high + c.low + c.close) / 3);
+  const totalVolume = candles.reduce((sum, c) => sum + c.volume, 0);
+  const vwap = typicalPrices.reduce((sum, tp, i) => sum + tp * candles[i].volume, 0) / totalVolume;
 
-  // GEX Flip: The regime boundary (approximately at 50th percentile of range)
+  // Calculate pivot points
+  const pivot = (current.high + current.low + current.close) / 3;
+  const r1 = 2 * pivot - current.low;
+  const s1 = 2 * pivot - current.high;
+  const r2 = pivot + (current.high - current.low);
+  const s2 = pivot - (current.high - current.low);
+
+  // Calculate recent high/low (last 20 candles for intraday relevance)
+  const recentCandles = candles.slice(-20);
+  const recentHigh = Math.max(...recentCandles.map((c) => c.high));
+  const recentLow = Math.min(...recentCandles.map((c) => c.low));
+
+  // Calculate overall range for the period
   const dayHigh = Math.max(...candles.map((c) => c.high));
   const dayLow = Math.min(...candles.map((c) => c.low));
-  const gexFlip = sheetOverride?.gexFlip ?? (dayHigh + dayLow) / 2;
 
-  // Call Wall: Estimated from IV and recent resistance or overridden from the sheet
-  const callWall = sheetOverride?.callWall ?? dayHigh + atr * 0.5;
+  // GEX Flip: Use VWAP as the regime boundary (more accurate than simple midpoint)
+  // VWAP represents the fair value where dealers are neutral
+  const gexFlip = vwap;
 
-  // Put Wall: Estimated from IV and recent support or overridden from the sheet
-  const putWall = sheetOverride?.putWall ?? dayLow - atr * 0.5;
+  // Call Wall: Use recent resistance (R1) adjusted by volatility
+  const callWall = r1 + atr * 0.3;
 
-  // HVL: High Volatility Level (volatility inflection point) or overridden
-  const hvl = sheetOverride?.hvl ?? gexFlip + atr * 0.25;
+  // Put Wall: Use recent support (S1) adjusted by volatility
+  const putWall = s1 - atr * 0.3;
 
-  // Max Pain: Gravitational center or overridden
-  const maxPain = sheetOverride?.maxPain ??
-    (callWall + putWall) / 2 + (current.close > gexFlip ? atr * 0.1 : -atr * 0.1);
+  // HVL: High Volatility Level - where gamma flips negative
+  const hvl = gexFlip + atr * 0.5;
 
-  // Vol Triggers: Positioned at next strike levels or overridden
-  const volTriggerUp = sheetOverride?.volTriggerUp ?? callWall + atr * 0.5;
-  const volTriggerDown = sheetOverride?.volTriggerDown ?? putWall - atr * 0.5;
+  // Max Pain: Use pivot point as gravitational center
+  const maxPain = pivot;
+
+  // Vol Triggers: Based on ATR multiples
+  const volTriggerUp = callWall + atr * 0.75;
+  const volTriggerDown = putWall - atr * 0.75;
 
   // Previous day high/low
   const pdh = yesterday ? yesterday.high : null;

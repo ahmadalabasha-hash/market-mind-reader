@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import VolatilityCard from './VolatilityCard';
 import ForecastChart from './ForecastChart';
 
+type ModelType = 'timesfm' | 'simple-ensemble' | 'transformer';
+
 interface ForecastHorizon {
   forecast: number[];
   horizon: number;
@@ -18,17 +20,26 @@ interface ForecastData {
   type: string;
   historical: number[];
   last_price: number;
-  forecasts: Record<string, ForecastHorizon>;
+  forecasts?: Record<string, ForecastHorizon>;
+  forecast?: number[];
+  ensemble_forecast?: number[];
+  forecast_mean?: number;
+  forecast_std?: number;
+  confidence_upper?: number[];
+  confidence_lower?: number[];
   last_updated: string;
   model: string;
+  model_weights?: Record<string, number>;
+  models_used?: string[];
 }
 
 interface StockForecastCardProps {
   symbol: string;
   name: string;
+  modelType?: ModelType;
 }
 
-export default function StockForecastCard({ symbol, name }: StockForecastCardProps) {
+export default function StockForecastCard({ symbol, name, modelType = 'timesfm' }: StockForecastCardProps) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +47,26 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
 
   useEffect(() => {
     let mounted = true;
+    let intervalId: NodeJS.Timeout;
     
     async function fetchForecast() {
       try {
-        const response = await fetch(`/api/forecasts/stocks/${symbol}`);
+        let endpoint: string;
+        
+        // Determine the correct API endpoint based on model type
+        if (modelType === 'timesfm') {
+          endpoint = `/api/forecasts/stocks/${symbol}`;
+        } else if (modelType === 'simple-ensemble') {
+          endpoint = `/api/forecasts/simple-ensemble/${symbol}`;
+        } else if (modelType === 'transformer') {
+          endpoint = `/api/forecasts/transformer/${symbol}`;
+        } else {
+          endpoint = `/api/forecasts/stocks/${symbol}`;
+        }
+        
+        console.log(`Fetching ${symbol} with modelType=${modelType} from endpoint: ${endpoint}`);
+        
+        const response = await fetch(endpoint);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch: ${response.status}`);
@@ -49,6 +76,7 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
         
         if (mounted) {
           setData(forecastData);
+          setError(null);
         }
       } catch (err) {
         if (mounted) {
@@ -64,10 +92,20 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
     
     fetchForecast();
     
+    // Auto-refresh every 30 seconds for live data
+    intervalId = setInterval(() => {
+      if (mounted) {
+        fetchForecast();
+      }
+    }, 30000);
+    
     return () => {
       mounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, [symbol]);
+  }, [symbol, modelType]);
 
   if (loading) {
     return (
@@ -90,19 +128,74 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
     );
   }
 
-  const oneDayForecast = data.forecasts?.["1"];
-  const sevenDayForecast = data.forecasts?.["7"];
-  const thirtyDayForecast = data.forecasts?.["30"];
+  // Handle different data structures for different models
+  // TimesFM has forecasts with horizons, ensemble/transformer have single forecast array
+  const isTimesFM = modelType === 'timesfm' && data.forecasts;
+  
+  let oneDayReturn = '0.00';
+  let sevenDayReturn = '0.00';
+  let thirtyDayReturn = '0.00';
+  let oneDayTarget = '--';
+  let sevenDayTarget = '--';
+  let thirtyDayTarget = '--';
 
-  const oneDayReturn = oneDayForecast && data.last_price > 0 
-    ? ((oneDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
-    : '0.00';
-  const sevenDayReturn = sevenDayForecast && data.last_price > 0 
-    ? ((sevenDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
-    : '0.00';
-  const thirtyDayReturn = thirtyDayForecast && data.last_price > 0 
-    ? ((thirtyDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
-    : '0.00';
+  if (isTimesFM && data.forecasts) {
+    const oneDayForecast = data.forecasts["1"];
+    const sevenDayForecast = data.forecasts["7"];
+    const thirtyDayForecast = data.forecasts["30"];
+
+    oneDayReturn = oneDayForecast && data.last_price > 0 
+      ? ((oneDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
+      : '0.00';
+    sevenDayReturn = sevenDayForecast && data.last_price > 0 
+      ? ((sevenDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
+      : '0.00';
+    thirtyDayReturn = thirtyDayForecast && data.last_price > 0 
+      ? ((thirtyDayForecast.forecast_mean - data.last_price) / data.last_price * 100).toFixed(2)
+      : '0.00';
+
+    oneDayTarget = oneDayForecast?.forecast_mean?.toFixed(2) || '--';
+    sevenDayTarget = sevenDayForecast?.forecast_mean?.toFixed(2) || '--';
+    thirtyDayTarget = thirtyDayForecast?.forecast_mean?.toFixed(2) || '--';
+  } else if (data.ensemble_forecast && data.forecast_mean) {
+    // Simple ensemble has ensemble_forecast
+    const forecastArray = data.ensemble_forecast;
+    
+    if (data.last_price > 0) {
+      if (forecastArray.length >= 1) {
+        oneDayReturn = ((forecastArray[0] - data.last_price) / data.last_price * 100).toFixed(2);
+        oneDayTarget = forecastArray[0].toFixed(2);
+      }
+      if (forecastArray.length >= 7) {
+        sevenDayReturn = ((forecastArray[6] - data.last_price) / data.last_price * 100).toFixed(2);
+        sevenDayTarget = forecastArray[6].toFixed(2);
+      }
+      if (forecastArray.length >= 30) {
+        thirtyDayReturn = ((forecastArray[29] - data.last_price) / data.last_price * 100).toFixed(2);
+        thirtyDayTarget = forecastArray[29].toFixed(2);
+      }
+    }
+  } else if (data.forecast && data.forecast_mean) {
+    // Ensemble/Transformer models have single forecast
+    const forecastArray = data.forecast;
+    const mean = data.forecast_mean;
+    
+    if (data.last_price > 0) {
+      // Calculate returns for different horizons from the forecast array
+      if (forecastArray.length >= 1) {
+        oneDayReturn = ((forecastArray[0] - data.last_price) / data.last_price * 100).toFixed(2);
+        oneDayTarget = forecastArray[0].toFixed(2);
+      }
+      if (forecastArray.length >= 7) {
+        sevenDayReturn = ((forecastArray[6] - data.last_price) / data.last_price * 100).toFixed(2);
+        sevenDayTarget = forecastArray[6].toFixed(2);
+      }
+      if (forecastArray.length >= 30) {
+        thirtyDayReturn = ((forecastArray[29] - data.last_price) / data.last_price * 100).toFixed(2);
+        thirtyDayTarget = forecastArray[29].toFixed(2);
+      }
+    }
+  }
 
   const isPositiveOneDay = parseFloat(oneDayReturn) > 0;
   const isPositiveSevenDay = parseFloat(sevenDayReturn) > 0;
@@ -115,6 +208,9 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
             <p className="text-sm text-gray-600">{symbol}</p>
+            <p className="text-xs text-blue-600 mt-1 capitalize">
+              Model: {modelType === 'timesfm' ? 'TimesFM' : modelType}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-gray-900">${data.last_price?.toFixed(2) || '--'}</p>
@@ -146,15 +242,15 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-600">1-Day Target:</span>
-            <span className="text-gray-900">${oneDayForecast?.forecast_mean?.toFixed(2) || '--'}</span>
+            <span className="text-gray-900">${oneDayTarget}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">7-Day Target:</span>
-            <span className="text-gray-900">${sevenDayForecast?.forecast_mean?.toFixed(2) || '--'}</span>
+            <span className="text-gray-900">${sevenDayTarget}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">30-Day Target:</span>
-            <span className="text-gray-900">${thirtyDayForecast?.forecast_mean?.toFixed(2) || '--'}</span>
+            <span className="text-gray-900">${thirtyDayTarget}</span>
           </div>
         </div>
 
@@ -174,10 +270,17 @@ export default function StockForecastCard({ symbol, name }: StockForecastCardPro
           </button>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
           <p className="text-xs text-gray-500">
-            Updated: {data.last_updated ? new Date(data.last_updated).toLocaleDateString() : '--'}
+            Updated: {data.last_updated ? new Date(data.last_updated).toLocaleTimeString() : '--'}
           </p>
+          <div className="flex items-center gap-1">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span className="text-xs text-green-600 font-medium">Live</span>
+          </div>
         </div>
       </div>
 

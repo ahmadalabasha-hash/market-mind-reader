@@ -60,6 +60,14 @@ export default async function OptionsMasterPage() {
                 <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                 <span>Content will be added from Google Sheets</span>
               </div>
+              <div className="mt-6">
+                <a
+                  href="/options-master/sslocal"
+                  className="inline-flex items-center rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:from-amber-500 hover:to-orange-600"
+                >
+                  Open SS Local (Polygon)
+                </a>
+              </div>
             </div>
           </div>
         </div>
